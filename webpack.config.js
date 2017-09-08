@@ -1,3 +1,4 @@
+var webpack = require('webpack')
 var path = require("path");
 
 module.exports = {
@@ -49,5 +50,12 @@ module.exports = {
     stats: { colors: true },
   },
 
-
+    plugins: [
+        new webpack.ProvidePlugin({ // inject ES5 modules as global vars
+          $: 'jquery',
+          jQuery: 'jquery',
+          'window.jQuery': 'jquery',
+          Tether: 'tether'
+        })
+    ]
 };
