@@ -1,29 +1,37 @@
 module Models exposing (..)
 
-import RemoteData exposing (WebData)
+import Msgs exposing (Msg(..))
+
+import Bootstrap.Navbar as Navbar
 
 type alias Model =
-    { players : WebData (List Player)
-    , route : Route
+    { page : Page
+    , navState : Navbar.State
     }
 
-initialModel : Route -> Model
-initialModel route =
-    { players = RemoteData.Loading
-    , route = route
+initialModel : Page -> Navbar.State -> Model
+initialModel page navState =
+    { page = page
+    , navState = navState
     }
 
-type alias PlayerId = String
-type alias PlayerLevel = Int
-type alias PlayerLevelChange = Int
+-- Routing types
 
-type alias Player =
-    { id: PlayerId
-    , name: String
-    , level: Int
+type Page
+    = Dashboard
+    | NotFound
+
+
+-- Notifications
+
+type NotificationKind
+    = Info
+    | Success
+    | Warn
+    | Error
+
+type alias Notification =
+    { title : String
+    , message : String
+    , kind : NotificationKind
     }
-
-type Route
-    = PlayersRoute
-    | PlayerRoute PlayerId
-    | NotFoundRoute

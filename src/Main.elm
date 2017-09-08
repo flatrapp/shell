@@ -1,30 +1,38 @@
-module Main exposing (..)
+module Main exposing (main)
 
-import Msgs exposing (Msg)
-import Models exposing (Model, initialModel)
-import Update exposing (update)
+import Models exposing (Model, initialModel, Page)
+import Msgs exposing (Msg(..))
+import Routing exposing (parseLocation)
 import View exposing (view)
-import Commands exposing (fetchPlayers)
+import Update exposing (update)
+
 import Navigation exposing (Location)
-import Routing
+
+import Bootstrap.Navbar as Navbar
+
+main : Program Never Model Msg
+main =
+    Navigation.program OnLocationChange
+        { view = view
+        , update = update
+        , subscriptions = subscriptions
+        , init = init
+        }
+
+-- Application Init
 
 init : Location -> ( Model, Cmd Msg )
 init location =
     let
-        currentRoute =
-            Routing.parseLocation location
+        ( navState, navCmd ) =
+            Navbar.initialState OnNavbarEvent
+
+        model = initialModel (parseLocation location) navState
     in
-        ( initialModel currentRoute, fetchPlayers )
+        ( model, navCmd ) 
+
+
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.none
-
-main : Program Never Model Msg
-main =
-    Navigation.program Msgs.OnLocationChange
-        { init = init
-        , view = view
-        , update = update
-        , subscriptions = subscriptions
-        }
+    Navbar.subscriptions model.navState OnNavbarEvent
