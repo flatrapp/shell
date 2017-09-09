@@ -28,11 +28,7 @@ update msg model =
             checkRedirectLogin { model | page = parseLocation location } Cmd.none
 
         Msgs.OnLoginFormEmailChange email ->
-            let
-                _ =
-                    Debug.log "Email update" email
-            in
-                ( setLoginFormEmail email model, Cmd.none )
+            ( setLoginFormEmail email model, Cmd.none )
 
         Msgs.OnLoginFormPasswordChange password ->
             ( setLoginFormPassword password model, Cmd.none )
