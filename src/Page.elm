@@ -9,25 +9,32 @@ import Bootstrap.Navbar as Navbar
 import Bootstrap.Grid as Grid
 
 
-render : Model -> Html Msg -> Html Msg
-render model subpage =
+render : Bool -> Model -> Html Msg -> Html Msg
+render navigationEnabled model subpage =
     div []
-        [ menu model
+        [ menu navigationEnabled model
         , br [] []
         , mainContent subpage
         ]
 
 
-menu : Model -> Html Msg
-menu model =
+menu : Bool -> Model -> Html Msg
+menu navigationEnabled model =
     Navbar.config OnNavbarEvent
         |> Navbar.container
         |> Navbar.brand [ href dashboardPath ] [ text "flatr" ]
-        |> Navbar.items
-            [ Navbar.itemLink [ href dashboardPath ] [ text "Dashboard" ]
-            , Navbar.itemLink [ href cleaningSchedulePath ] [ text "Cleaning Schedule" ]
-            ]
+        |> Navbar.items (navbarItems navigationEnabled)
         |> Navbar.view model.navState
+
+
+navbarItems : Bool -> List (Navbar.Item msg)
+navbarItems itemsVisible =
+    if itemsVisible then
+        [ Navbar.itemLink [ href dashboardPath ] [ text "Dashboard" ]
+        , Navbar.itemLink [ href cleaningSchedulePath ] [ text "Cleaning Schedule" ]
+        ]
+    else
+        []
 
 
 mainContent : Html Msg -> Html Msg
