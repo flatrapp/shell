@@ -5,10 +5,10 @@ import Msgs exposing (Msg(..))
 import Routing exposing (parseLocation)
 import View exposing (view)
 import Update exposing (update)
-
+import Time exposing (second)
 import Navigation exposing (Location)
-
 import Bootstrap.Navbar as Navbar
+
 
 main : Program Never Model Msg
 main =
@@ -19,7 +19,10 @@ main =
         , init = init
         }
 
+
+
 -- Application Init
+
 
 init : Location -> ( Model, Cmd Msg )
 init location =
@@ -27,12 +30,16 @@ init location =
         ( navState, navCmd ) =
             Navbar.initialState OnNavbarEvent
 
-        model = initialModel (parseLocation location) navState
+        ( model, cmd ) =
+            update OnAppInitialized
+                (initialModel (parseLocation location) navState)
     in
-        ( model, navCmd ) 
-
+        ( model, Cmd.batch [ navCmd, cmd ] )
 
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Navbar.subscriptions model.navState OnNavbarEvent
+    Sub.batch
+        [ Time.every second OnTimeTick
+        , Navbar.subscriptions model.navState OnNavbarEvent
+        ]
