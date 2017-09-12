@@ -32,7 +32,7 @@ init location =
 
         ( model, cmd ) =
             update OnAppInitialized
-                (initialModel (parseLocation location) navState)
+                (initialModel (parseLocation location) location navState)
     in
         ( model, Cmd.batch [ navCmd, cmd ] )
 

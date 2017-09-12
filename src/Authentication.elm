@@ -1,13 +1,7 @@
 module Authentication exposing (..)
 
-import Time exposing (Time)
-
-
-type alias Authentication =
-    { token : String
-    , validUntil : Time
-    , username : String
-    }
+import Models exposing (Authentication, UnwrappedAuthenticationResponse)
+import Time exposing (Time, second)
 
 
 checkAuthenticated : Maybe Time -> Maybe Authentication -> Bool
@@ -36,3 +30,16 @@ checkAuthenticated2 time auth =
         False
     else
         True
+
+
+fromAuthenticationResponse : Time -> UnwrappedAuthenticationResponse -> Maybe Authentication
+fromAuthenticationResponse time res =
+    let
+        validUntil =
+            time + ((toFloat res.validFor) * second)
+    in
+        Just
+            { token = res.token
+            , tokenId = res.tokenId
+            , validUntil = validUntil
+            }

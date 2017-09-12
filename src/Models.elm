@@ -1,12 +1,14 @@
 module Models exposing (..)
 
-import Authentication exposing (Authentication)
 import Time exposing (Time)
+import Navigation exposing (Location)
 import Bootstrap.Navbar as Navbar
 
 
 type alias Model =
     { page : Page
+    , location : Location
+    , loginDestLocation : Location
     , navState : Navbar.State
     , auth : Maybe Authentication
     , time : Maybe Time
@@ -14,9 +16,11 @@ type alias Model =
     }
 
 
-initialModel : Page -> Navbar.State -> Model
-initialModel page navState =
+initialModel : Page -> Location -> Navbar.State -> Model
+initialModel page location navState =
     { page = page
+    , location = location
+    , loginDestLocation = location
     , navState = navState
     , auth = Nothing
     , time = Nothing
@@ -50,6 +54,65 @@ type alias Notification =
     , message : String
     , kind : NotificationKind
     }
+
+
+
+-- Backend Endpoints
+
+
+type Endpoint
+    = Auth
+
+
+
+-- Authentication
+
+
+type alias Email =
+    String
+
+
+type alias Password =
+    String
+
+
+type alias Token =
+    String
+
+
+type alias TokenId =
+    String
+
+
+type alias Authentication =
+    { token : Token
+    , tokenId : TokenId
+    , validUntil : Time
+    }
+
+
+type alias UnwrappedAuthenticationResponse =
+    { token : String
+    , tokenId : String
+    , validFor : Int
+    }
+
+
+type AuthenticationResponse
+    = AuthenticationSuccessResponse
+        { token : String
+        , tokenId : String
+        , validFor : Int
+        }
+    | AuthenticationErrorResponse
+        { error : AuthenticationError
+        , message : String
+        }
+
+
+type AuthenticationError
+    = BadEmailPasswordError
+    | UnknownAuthenticationError String
 
 
 

@@ -4,6 +4,7 @@ import Models exposing (Model)
 import Msgs exposing (Msg(..))
 import Html exposing (Html, div, text, h1)
 import Html.Attributes exposing (for, style)
+import Html.Events exposing (onSubmit)
 import Bootstrap.Form as Form
 import Bootstrap.Form.Input as Input exposing (onInput)
 import Bootstrap.Button as Button
@@ -13,7 +14,7 @@ render : Model -> Html Msg
 render model =
     div []
         [ h1 [ style [ ( "margin-bottom", "1.2em" ) ] ] [ text "Login" ]
-        , Form.form []
+        , Form.form [ onSubmit RequestAuthentication ]
             [ Form.group []
                 [ Form.label [ for "email" ] [ text "E-Mail:" ]
                 , Input.email [ Input.id "email", onInput OnLoginFormEmailChange ]
