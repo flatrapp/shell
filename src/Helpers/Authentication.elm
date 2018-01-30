@@ -134,8 +134,13 @@ saveAuthentication authRes time =
 isAuthenticated : Globals.Types.Model -> Bool
 isAuthenticated globals =
     case globals.auth of
-        Just a ->
-            True
-
+        Just auth ->
+            case globals.time of
+                Just time ->
+                    auth.validUntil >= time
+                Nothing ->
+                    -- Let's hope the token is still valid, as soon as the
+                    -- first time tick arrives we'll get thrown out otherwise
+                    True
         Nothing ->
             False
