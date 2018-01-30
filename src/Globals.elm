@@ -27,7 +27,10 @@ update : Msg -> Model -> ( Model, Cmd Msg, Cmd Msg.Msg )
 update msg model =
     case msg of
         AppInitialized ->
-            model !: []
+            -- Do a location change with the initial parsed location when the app is initialized
+            -- this will redirect the user immediately if necessary and send all the ViewState messages
+            -- Sorta hack, but it works pretty well
+            update (LocationChange model.location) model
 
         TimeTick newTime ->
             { model | time = Just newTime } !: []
