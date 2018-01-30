@@ -8,6 +8,7 @@ import Bootstrap.Grid.Col as Col
 import Bootstrap.Navbar as Navbar exposing (..)
 import Components.Dashboard exposing (view)
 import Components.Login exposing (view)
+import Components.NotFound
 import Globals.Types
 import Helpers.Authentication exposing (isAuthenticated)
 import Html exposing (..)
@@ -21,18 +22,27 @@ import Time
 
 view : Model.Model -> Html Msg.Msg
 view model =
-    div []
-        [ menu (isAuthenticated model.globals) model
-        , br [] []
-        , Grid.container [] [ content model ]
-        ]
+    case model.globals.time of
+        Nothing ->
+            div []
+                [ menu False model
+                , br [] []
+                , Grid.container [] [ h1 [] [ text "Loading..." ] ]
+                ]
+
+        Just _ ->
+            div []
+                [ menu (isAuthenticated model.globals) model
+                , br [] []
+                , Grid.container [] [ content model ]
+                ]
 
 
 content : Model.Model -> Html Msg.Msg
 content model =
     case model.globals.page of
         NotFoundPage ->
-            text "Site not found"
+            Html.map Msg.Login Components.NotFound.view
 
         LoginPage ->
             Html.map Msg.Login (Components.Login.view model.login model.globals)
@@ -46,28 +56,24 @@ menu navigationEnabled model =
     Navbar.config Msg.NavbarEvent
         |> Navbar.container
         |> Navbar.brand [ href "#" ] [ text "flatr" ]
-        |> Navbar.items (navbarItems navigationEnabled)
-        |> navba navigationEnabled
+        |> navbarItems navigationEnabled model
         |> Navbar.view model.navState
 
 
-navbarItems : Bool -> List (Navbar.Item msg)
-navbarItems itemsVisible =
-    if itemsVisible then
-        [ Navbar.itemLink [ href "#" ] [ text "Dashboard" ]
-        , Navbar.itemLink [ href "#cleaning-schedule" ] [ text "Cleaning Schedule" ]
-        ]
-    else
-        []
-
-
-navba : Bool -> Config Msg -> Config Msg
-navba authenticated config =
+navbarItems : Bool -> Model.Model -> Config Msg -> Config Msg
+navbarItems authenticated model config =
     if authenticated then
         config
-            |> Navbar.items (navbarItems True)
+            |> Navbar.items
+                [ Navbar.itemLink [ href "#" ] [ text "Dashboard" ]
+                , Navbar.itemLink [ href "#cleaning-schedule" ] [ text "Cleaning Schedule" ]
+                ]
             |> Navbar.customItems
-                [ Navbar.textItem [ class "muted ml-sm-2", style [ ( "margin-right", "20px" ) ] ] [ text ("Session-Timeout: " ++ "blubb" ++ " minutes") ]
+                [ Navbar.textItem
+                    [ class "muted ml-sm-2"
+                    , style [ ( "margin-right", "20px" ) ]
+                    ]
+                    [ text ("Session-Timeout: " ++ (toString <| remainingTime model) ++ " minutes") ]
                 , Navbar.formItem [ onSubmit (Msg.Globals Globals.Types.Logout) ]
                     [ Button.button [] [ text "Logout" ]
                     ]
@@ -76,11 +82,16 @@ navba authenticated config =
         config
 
 
-remainingTime : Maybe Time.Time -> Float -> Int
-remainingTime maybeTime until =
-    case maybeTime of
+remainingTime : Model.Model -> Int
+remainingTime model =
+    case model.globals.time of
         Nothing ->
             -1
 
         Just time ->
-            round ((until - time) / Time.minute)
+            case model.globals.auth of
+                Nothing ->
+                    -1
+
+                Just auth ->
+                    truncate ((auth.validUntil - time) / Time.minute)
