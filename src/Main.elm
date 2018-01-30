@@ -11,7 +11,7 @@ import Msg exposing (Msg(..))
 import Navigation exposing (Location)
 import Time exposing (second)
 import View exposing (view)
-
+import Task
 
 main : Program Flags Model.Model Msg.Msg
 main =
@@ -46,8 +46,10 @@ init flags location =
 
         authSaveCmd =
             Cmd.batch [ Cmd.map Globals authSaveGlobalsCmd, authSaveMainCmd ]
+
+        timeCmd = Task.perform Msg.TimeTick Time.now
     in
-    { model | globals = newGlobals } ! [ navCmd, cmd, authSaveCmd ]
+    { model | globals = newGlobals } ! [ navCmd, cmd, authSaveCmd, timeCmd ]
 
 
 updateWrapper : Msg.Msg -> Model.Model -> ( Model.Model, Cmd Msg.Msg )
@@ -76,6 +78,10 @@ update msg model =
 
         Msg.TimeTick time ->
             let
+                -- TODO: Remove
+                _ =
+                    Debug.log "Login model" model.login
+
                 ( newModel, msgs ) =
                     ( model, [] )
                         :> update (Msg.Globals (Globals.Types.TimeTick time))
