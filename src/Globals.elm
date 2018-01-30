@@ -1,112 +1,99 @@
 port module Globals exposing (..)
 
 import Bootstrap.Navbar as Navbar
+import Components.Dashboard as Dashboard
+import Components.Login as Login
+import Globals.Types exposing (Authentication, Model, Msg(..))
 import Helpers.Alert exposing (sendAlert)
+import Helpers.Authentication exposing (isAuthenticated)
+import Helpers.Operators exposing ((!:), (!>))
+import Msg
 import Navigation exposing (Location)
-import Pages exposing (Page, parseLocation)
+import Pages exposing (Page(..), parseLocation)
+import Task
 import Time exposing (Time)
 
 
 port clearAuthLocalStorage : () -> Cmd msg
 
 
-type alias Model =
-    { page : Page
-    , location : Location
-    , loginDestLocation : Location
-    , apiBaseUrl : String
-    , time : Maybe Time
-    , auth : Maybe Authentication
-    }
+send : msg -> Cmd msg
+send msg =
+    Task.succeed msg
+        |> Task.perform identity
 
 
-initialModel : Location -> Model
-initialModel location =
-    { page = Pages.parseLocation location
-    , location = location
-    , loginDestLocation = location
-    , apiBaseUrl = "http://localhost:8000"
-    , time = Nothing
-    , auth = Nothing
-    }
-
-
-type Msg
-    = AppInitialized
-    | TimeTick Time
-    | LocationChange Location
-    | Alert String
-    | SaveAuthentication Authentication
-    | CheckRedirectLogin
-    | Logout
-
-
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> ( Model, Cmd Msg, Cmd Msg.Msg )
 update msg model =
     case msg of
         AppInitialized ->
-            model ! []
+            model !: []
 
         TimeTick newTime ->
-            let
-                _ =
-                    Debug.log "Globals" model
-            in
-            { model | time = Just newTime } ! []
+            { model | time = Just newTime } !: []
 
         LocationChange location ->
-            { model
-                | page = parseLocation location
-                , location = location
-            }
-                ! []
+            let
+                -- First, try setting the destination in the model
+                newModel =
+                    { model | page = parseLocation location, location = location }
+
+                -- Check if a redirect is necessary to reach the destination
+                ( redirectModel, cmd, mainCmd ) =
+                    checkRedirectLogin newModel Cmd.none
+
+                -- Build all view-state commands (now that the final destination page is set)
+                viewStateCmds =
+                    viewStateMsgs redirectModel.page |> List.map send
+            in
+            redirectModel !> ( [ cmd ], mainCmd :: viewStateCmds )
 
         Alert msg ->
-            model ! [ sendAlert msg ]
+            model !: [ sendAlert msg ]
 
         SaveAuthentication auth ->
-            { model | auth = Just auth } ! []
+            { model | auth = Just auth } !: []
 
         CheckRedirectLogin ->
             checkRedirectLogin model Cmd.none
 
         Logout ->
-            { model | auth = Nothing } ! [ clearAuthLocalStorage () ]
+            { model | auth = Nothing } !: [ clearAuthLocalStorage () ]
 
 
-isAuthenticated : Model -> Bool
-isAuthenticated globals =
-    case globals.auth of
-        Just a ->
-            True
-
-        Nothing ->
-            False
-
-
-checkRedirectLogin : Model -> Cmd Msg -> ( Model, Cmd Msg )
+checkRedirectLogin : Model -> Cmd Msg -> ( Model, Cmd Msg, Cmd Msg.Msg )
 checkRedirectLogin model otherCmd =
     -- check if the user is authenticated
     if not (isAuthenticated model) && model.page /= Pages.LoginPage then
         -- not authenticated, switch to the login page
-        ( { model
+        { model
             | page = Pages.LoginPage
             , loginDestLocation = model.location
-          }
-        , Cmd.batch [ Navigation.modifyUrl "#login", otherCmd ]
-        )
+        }
+            !: [ Navigation.modifyUrl "#login", otherCmd ]
     else if isAuthenticated model && model.page == Pages.LoginPage then
-        ( { model
+        { model
             | page = Pages.DashboardPage
-          }
-        , Cmd.batch [ Navigation.modifyUrl "#", otherCmd ]
-        )
+        }
+            !: [ Navigation.modifyUrl "#", otherCmd ]
     else
-        ( model, otherCmd )
+        model !: [ otherCmd ]
 
 
-type alias Authentication =
-    { token : String
-    , tokenId : String
-    , validUntil : Float
-    }
+viewStateMsgs : Pages.Page -> List Msg.Msg
+viewStateMsgs page =
+    case page of
+        LoginPage ->
+            [ Msg.Login <| Login.ViewState True
+            , Msg.Dashboard <| Dashboard.ViewState False
+            ]
+
+        DashboardPage ->
+            [ Msg.Login <| Login.ViewState False
+            , Msg.Dashboard <| Dashboard.ViewState True
+            ]
+
+        _ ->
+            [ Msg.Login <| Login.ViewState False
+            , Msg.Dashboard <| Dashboard.ViewState False
+            ]

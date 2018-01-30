@@ -4,55 +4,86 @@ import Bootstrap.Navbar as Navbar
 import Components.Dashboard exposing (Model, Msg)
 import Components.Login exposing (Model, Msg)
 import Globals exposing (..)
-import Helpers.Authentication exposing (isAuthenticated)
-import Model exposing (Model, Msg(..), initialModel)
+import Globals.Types
+import Helpers.Operators exposing ((:>))
+import Model exposing (Model, initialModel)
+import Msg exposing (Msg(..))
 import Navigation exposing (Location)
-import Pages
 import Time exposing (second)
 import View exposing (view)
 
 
-main : Program Flags Model.Model Model.Msg
+main : Program Flags Model.Model Msg.Msg
 main =
-    Navigation.programWithFlags Model.LocationChange
+    Navigation.programWithFlags Msg.LocationChange
         { init = init
         , view = View.view
         , update = updateWrapper
         , subscriptions = subscriptions
         }
 
-type alias Flags =
-  { auth : Maybe Globals.Authentication }
 
-init : Flags -> Location -> ( Model.Model, Cmd Model.Msg )
+type alias Flags =
+    { auth : Maybe Globals.Types.Authentication }
+
+
+init : Flags -> Location -> ( Model.Model, Cmd Msg.Msg )
 init flags location =
     let
         ( navState, navCmd ) =
             Navbar.initialState NavbarEvent
 
         ( model, cmd ) =
-            update (Globals AppInitialized) (Model.initialModel location navState)
+            update Msg.AppInitialized (Model.initialModel location navState)
 
-        ( newGlobals, authSaveCmd ) =
+        ( newGlobals, authSaveGlobalsCmd, authSaveMainCmd ) =
             case flags.auth of
                 Just auth ->
-                    Globals.update (Globals.SaveAuthentication auth) model.globals
-                Nothing ->
-                    ( model.globals, Cmd.none )
-    in
-    { model | globals = newGlobals } ! [ navCmd, cmd, Cmd.map Globals authSaveCmd ]
+                    Globals.update (Globals.Types.SaveAuthentication auth) model.globals
 
-updateWrapper : Model.Msg -> Model.Model -> ( Model.Model, Cmd Model.Msg )
+                Nothing ->
+                    ( model.globals, Cmd.none, Cmd.none )
+
+        authSaveCmd =
+            Cmd.batch [ Cmd.map Globals authSaveGlobalsCmd, authSaveMainCmd ]
+    in
+    { model | globals = newGlobals } ! [ navCmd, cmd, authSaveCmd ]
+
+
+updateWrapper : Msg.Msg -> Model.Model -> ( Model.Model, Cmd Msg.Msg )
 updateWrapper msg model =
     let
-        (newModel, updateCmd) = update msg model
-        (newGlobals, redirectCmd) = Globals.update Globals.CheckRedirectLogin newModel.globals
-    in
-        { newModel | globals = newGlobals } ! [ updateCmd, Cmd.map Globals redirectCmd ]
+        ( globals, redirectCmd, redirectMainCmd ) =
+            Globals.update Globals.Types.CheckRedirectLogin model.globals
 
-update : Model.Msg -> Model.Model -> ( Model.Model, Cmd Model.Msg )
+        ( newModel, updateCmd ) =
+            update msg { model | globals = globals }
+    in
+    newModel ! [ Cmd.map Globals redirectCmd, redirectMainCmd, updateCmd ]
+
+
+update : Msg.Msg -> Model.Model -> ( Model.Model, Cmd Msg.Msg )
 update msg model =
     case msg of
+        Msg.AppInitialized ->
+            let
+                ( newModel, msgs ) =
+                    ( model, [] )
+                        :> update (Msg.Globals Globals.Types.AppInitialized)
+                        :> update (Msg.Login Components.Login.AppInitialized)
+            in
+            newModel ! msgs
+
+        Msg.TimeTick time ->
+            let
+                ( newModel, msgs ) =
+                    ( model, [] )
+                        :> update (Msg.Globals (Globals.Types.TimeTick time))
+
+                --:> update (Model.Login Components.Login.AppInitialized)
+            in
+            newModel ! msgs
+
         Login lmsg ->
             let
                 ( newModel, cmd, globalsCmd ) =
@@ -69,27 +100,21 @@ update msg model =
 
         Globals gmsg ->
             let
-                ( newModel, cmd ) =
+                ( newModel, cmd, mainCmd ) =
                     Globals.update gmsg model.globals
             in
-            { model | globals = newModel } ! [ Cmd.map Globals cmd ]
+            { model | globals = newModel } ! [ Cmd.map Globals cmd, mainCmd ]
 
-        Model.LocationChange location ->
-            let
-                ( newModel, cmd ) =
-                    Globals.update (Globals.LocationChange location) model.globals
-            in
-            { model | globals = newModel } ! [ Cmd.map Globals cmd ]
+        Msg.LocationChange location ->
+            update (Msg.Globals <| Globals.Types.LocationChange location) model
 
         NavbarEvent navState ->
             { model | navState = navState } ! []
 
 
-
-
-subscriptions : Model.Model -> Sub Model.Msg
+subscriptions : Model.Model -> Sub Msg.Msg
 subscriptions model =
     Sub.batch
-        [ Sub.map Globals (Time.every second TimeTick)
+        [ Time.every second Msg.TimeTick
         , Navbar.subscriptions model.navState NavbarEvent
         ]

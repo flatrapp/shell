@@ -3,14 +3,19 @@ module Components.Login exposing (..)
 import Bootstrap.Button as Button
 import Bootstrap.Form as Form
 import Bootstrap.Form.Input as Input exposing (onInput)
-import Globals exposing (Model)
+import Globals.Types
 import Helpers.Authentication exposing (..)
+import Helpers.Operators exposing ((!:), (!>))
 import Html exposing (Html, div, h1, text)
 import Html.Attributes exposing (for, style)
 import Html.Events exposing (onSubmit)
 import Http
-import Task
 import Navigation
+import Task
+
+
+-- (!) = Helpers.Operators.(!)
+
 
 type alias Model =
     { email : String
@@ -26,20 +31,12 @@ initialModel =
 
 
 type Msg
-    = RequestAuthentication
+    = AppInitialized
+    | RequestAuthentication
     | EmailChange String
     | PasswordChange String
     | AuthResponse (Result Http.Error AuthenticationResponse)
-
-
-(!) : model -> List (Cmd msg) -> ( model, Cmd msg, Cmd globalsMsg )
-(!) model msgs =
-    ( model, Cmd.batch msgs, Cmd.batch [] )
-
-
-(!>) : model -> ( List (Cmd msg), List (Cmd globalsMsg) ) -> ( model, Cmd msg, Cmd globalsMsg )
-(!>) model ( msgs, globalsMsgs ) =
-    ( model, Cmd.batch msgs, Cmd.batch globalsMsgs )
+    | ViewState Bool
 
 
 send : msg -> Cmd msg
@@ -48,9 +45,16 @@ send msg =
         |> Task.perform identity
 
 
-update : Msg -> Model -> Globals.Model -> ( Model, Cmd Msg, Cmd Globals.Msg )
+update : Msg -> Model -> Globals.Types.Model -> ( Model, Cmd Msg, Cmd Globals.Types.Msg )
 update msg model globals =
     case msg of
+        AppInitialized ->
+            let
+                _ =
+                    Debug.log "hello" "world from app init login"
+            in
+            model !: []
+
         RequestAuthentication ->
             let
                 req =
@@ -62,44 +66,53 @@ update msg model globals =
             { model | email = email } !> ( [], [] )
 
         PasswordChange password ->
-            { model | password = password } ! []
+            { model | password = password } !: []
 
         AuthResponse res ->
             model !> ( [], [ handleAuthResponse globals res ] )
 
+        ViewState state ->
+            let
+                _ =
+                    Debug.log "Login view state" state
+            in
+            model !: []
 
-handleAuthResponse : Globals.Model -> Result err AuthenticationResponse -> Cmd Globals.Msg
+
+handleAuthResponse : Globals.Types.Model -> Result err AuthenticationResponse -> Cmd Globals.Types.Msg
 handleAuthResponse globals res =
     case res of
         Err err ->
-            send (Globals.Alert "Http.Error")
+            send (Globals.Types.Alert "Http.Error")
 
         Ok authResponse ->
             case authResponse of
                 AuthenticationSuccessResponse auth ->
                     case globals.time of
                         Nothing ->
-                            send (Globals.Alert "No time tick received yet")
-                        Just time ->
-                            let destinationHash =
-                                case globals.loginDestLocation.hash of
-                                    "" ->
-                                        "#"
+                            send (Globals.Types.Alert "No time tick received yet")
 
-                                    x ->
-                                        x
+                        Just time ->
+                            let
+                                destinationHash =
+                                    case globals.loginDestLocation.hash of
+                                        "" ->
+                                            "#"
+
+                                        x ->
+                                            x
                             in
-                                Cmd.batch
-                                    [ saveAuthentication auth time
-                                    , Navigation.newUrl destinationHash
-                                    ]
+                            Cmd.batch
+                                [ saveAuthentication auth time
+                                , Navigation.newUrl destinationHash
+                                ]
 
                 -- saveAuthentication auth
                 AuthenticationErrorResponse authError ->
-                    send (Globals.Alert authError.message)
+                    send (Globals.Types.Alert authError.message)
 
 
-view : Model -> Globals.Model -> Html Msg
+view : Model -> Globals.Types.Model -> Html Msg
 view model globals =
     div []
         [ h1 [ style [ ( "margin-bottom", "1.2em" ) ] ] [ text "Login" ]

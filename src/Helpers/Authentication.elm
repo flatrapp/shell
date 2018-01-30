@@ -1,6 +1,6 @@
 port module Helpers.Authentication exposing (..)
 
-import Globals
+import Globals.Types
 import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as DecodePipeline exposing (decode, required)
@@ -13,7 +13,7 @@ import Time exposing (second)
 port saveAuthLocalStorage : Encode.Value -> Cmd msg
 
 
-encodeAuthLocalStorage : Globals.Authentication -> Encode.Value
+encodeAuthLocalStorage : Globals.Types.Authentication -> Encode.Value
 encodeAuthLocalStorage auth =
     Encode.object
         [ ( "token", Encode.string auth.token )
@@ -50,14 +50,6 @@ send msg =
 
 requestTimeout =
     5 * second
-
-
-
--- Can't be defined here because of circular imports :/
-
-
-isAuthenticated =
-    Globals.isAuthenticated
 
 
 authRequest : String -> String -> String -> Http.Request AuthenticationResponse
@@ -124,21 +116,26 @@ authResponseDecode =
     Decode.oneOf [ authResponseErrorDecoder, authResponseSuccessDecoder ]
 
 
-
--- This function doesn't perform any error handling, use it only on AuthenticationSuccessResponse
-
-
-saveAuthentication : AuthenticationSuccessResponseContent -> Time.Time -> Cmd Globals.Msg
+saveAuthentication : AuthenticationSuccessResponseContent -> Time.Time -> Cmd Globals.Types.Msg
 saveAuthentication authRes time =
     let
-        auth = 
-                { token = authRes.token
-                , tokenId = authRes.tokenId
-                , validUntil = time + toFloat authRes.validFor * Time.second
-                }
-            in
-                Cmd.batch
-                    [ send <|
-                        Globals.SaveAuthentication auth
-                    , saveAuthLocalStorage <| encodeAuthLocalStorage auth
-                    ]
+        auth =
+            { token = authRes.token
+            , tokenId = authRes.tokenId
+            , validUntil = time + toFloat authRes.validFor * Time.second
+            }
+    in
+    Cmd.batch
+        [ send <| Globals.Types.SaveAuthentication auth
+        , saveAuthLocalStorage <| encodeAuthLocalStorage auth
+        ]
+
+
+isAuthenticated : Globals.Types.Model -> Bool
+isAuthenticated globals =
+    case globals.auth of
+        Just a ->
+            True
+
+        Nothing ->
+            False

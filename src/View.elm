@@ -8,16 +8,18 @@ import Bootstrap.Grid.Col as Col
 import Bootstrap.Navbar as Navbar exposing (..)
 import Components.Dashboard exposing (view)
 import Components.Login exposing (view)
-import Globals
+import Globals.Types
 import Helpers.Authentication exposing (isAuthenticated)
 import Html exposing (..)
 import Html.Attributes exposing (class, href, style)
 import Html.Events exposing (onSubmit)
-import Model exposing (Model, Msg(..))
+import Model exposing (Model)
+import Msg exposing (Msg)
 import Pages exposing (..)
+import Time
 
 
-view : Model.Model -> Html Model.Msg
+view : Model.Model -> Html Msg.Msg
 view model =
     div []
         [ menu (isAuthenticated model.globals) model
@@ -26,22 +28,22 @@ view model =
         ]
 
 
-content : Model.Model -> Html Model.Msg
+content : Model.Model -> Html Msg.Msg
 content model =
     case model.globals.page of
         NotFoundPage ->
             text "Site not found"
 
         LoginPage ->
-            Html.map Login (Components.Login.view model.login model.globals)
+            Html.map Msg.Login (Components.Login.view model.login model.globals)
 
         DashboardPage ->
-            Html.map Dashboard (Components.Dashboard.view model.dashboard model.globals)
+            Html.map Msg.Dashboard (Components.Dashboard.view model.dashboard model.globals)
 
 
-menu : Bool -> Model.Model -> Html Model.Msg
+menu : Bool -> Model.Model -> Html Msg.Msg
 menu navigationEnabled model =
-    Navbar.config Model.NavbarEvent
+    Navbar.config Msg.NavbarEvent
         |> Navbar.container
         |> Navbar.brand [ href "#" ] [ text "flatr" ]
         |> Navbar.items (navbarItems navigationEnabled)
@@ -65,10 +67,20 @@ navba authenticated config =
         config
             |> Navbar.items (navbarItems True)
             |> Navbar.customItems
-                [ Navbar.textItem [class "muted ml-sm-2", style [("margin-right", "20px")]] [ text "Session-Timeout: 12 minutes" ]
-                , Navbar.formItem [ onSubmit (Model.Globals Globals.Logout) ]
+                [ Navbar.textItem [ class "muted ml-sm-2", style [ ( "margin-right", "20px" ) ] ] [ text ("Session-Timeout: " ++ "blubb" ++ " minutes") ]
+                , Navbar.formItem [ onSubmit (Msg.Globals Globals.Types.Logout) ]
                     [ Button.button [] [ text "Logout" ]
                     ]
                 ]
     else
         config
+
+
+remainingTime : Maybe Time.Time -> Float -> Int
+remainingTime maybeTime until =
+    case maybeTime of
+        Nothing ->
+            -1
+
+        Just time ->
+            round ((until - time) / Time.minute)

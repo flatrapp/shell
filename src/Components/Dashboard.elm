@@ -1,6 +1,6 @@
 module Components.Dashboard exposing (..)
 
-import Globals exposing (Model)
+import Globals.Types
 import Html exposing (Html, text)
 
 
@@ -15,15 +15,19 @@ initialModel =
 
 type Msg
     = Nomsg
+    | ViewState Bool
 
 
-update : Msg -> Model -> Globals.Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> Globals.Types.Model -> ( Model, Cmd Msg )
 update msg model globals =
     case msg of
         Nomsg ->
             model ! []
 
+        ViewState state ->
+            model ! []
 
-view : Model -> Globals.Model -> Html msg
+
+view : Model -> Globals.Types.Model -> Html msg
 view model globals =
     text "Dashboard"
