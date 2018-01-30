@@ -1,11 +1,11 @@
 module Page.NotFound exposing (render)
 
+import Bootstrap.Alert as Alert
+import Html exposing (Html, a, br, p, text)
+import Html.Attributes exposing (href)
 import Models exposing (Model)
 import Msgs exposing (Msg(..))
 import Routing exposing (dashboardPath)
-import Html exposing (Html, a, p, text, br)
-import Html.Attributes exposing (href)
-import Bootstrap.Alert as Alert
 
 
 render : Model -> Html Msg

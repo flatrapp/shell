@@ -1,13 +1,13 @@
 module Page.Login exposing (render)
 
-import Models exposing (Model)
-import Msgs exposing (Msg(..))
-import Html exposing (Html, div, text, h1)
-import Html.Attributes exposing (for, style)
-import Html.Events exposing (onSubmit)
+import Bootstrap.Button as Button
 import Bootstrap.Form as Form
 import Bootstrap.Form.Input as Input exposing (onInput)
-import Bootstrap.Button as Button
+import Html exposing (Html, div, h1, text)
+import Html.Attributes exposing (for, style)
+import Html.Events exposing (onSubmit)
+import Models exposing (Model)
+import Msgs exposing (Msg(..))
 
 
 render : Model -> Html Msg

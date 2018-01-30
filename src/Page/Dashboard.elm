@@ -1,8 +1,8 @@
 module Page.Dashboard exposing (render)
 
+import Html exposing (Html, div, text)
 import Models exposing (Model)
 import Msgs exposing (Msg(..))
-import Html exposing (Html, div, text)
 
 
 render : Model -> Html Msg
