@@ -72,11 +72,12 @@ update msg model globals =
             model !> ( [], [ handleAuthResponse globals res ] )
 
         ViewState state ->
-            let
-                _ =
-                    Debug.log "Login view state" state
-            in
-            model !: []
+            case state of
+                False ->
+                    initialModel !: []
+
+                True ->
+                    model !: []
 
 
 handleAuthResponse : Globals.Types.Model -> Result err AuthenticationResponse -> Cmd Globals.Types.Msg
