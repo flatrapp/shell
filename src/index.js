@@ -10,15 +10,6 @@ require('./index.html');
 var Elm = require('./Main.elm');
 var mountNode = document.getElementById('main');
 
-// .embed() can take an optional second argument. This would be an object describing the data we need to start a program, i.e. a userID or some token
-
-
-
-//var toastNotificationHandler = function(n) {
-//  alert(JSON.stringify(n));
-//};
-//app.ports.toastNotification.subscribe(toastNotificationHandler);
-
 var currentAuthString = localStorage.getItem("auth");
 var currentAuth = null;
 var clearAuth = function () { localStorage.setItem("auth", JSON.stringify(null)); currentAuth = null; };
@@ -37,7 +28,6 @@ if (typeof currentAuth === "object" && currentAuth !== null) {
     clearAuth();
 }
 
-console.log(currentAuth);
 var app = Elm.Main.embed(mountNode, { auth: currentAuth });
 
 app.ports.sendAlert.subscribe(function (msg) {
