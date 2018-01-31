@@ -28,7 +28,9 @@ if (typeof currentAuth === "object" && currentAuth !== null) {
     clearAuth();
 }
 
-var app = Elm.Main.embed(mountNode, { auth: currentAuth });
+const timezoneOffset = (new Date).getTimezoneOffset() * -1;
+
+var app = Elm.Main.embed(mountNode, { timezoneOffset: timezoneOffset, auth: currentAuth });
 
 app.ports.sendAlert.subscribe(function (msg) {
   alert(msg);

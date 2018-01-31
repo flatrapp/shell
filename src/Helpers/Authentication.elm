@@ -5,6 +5,7 @@ import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as DecodePipeline exposing (decode, required)
 import Json.Encode as Encode
+import List
 import RemoteData
 import Task
 import Time exposing (second)
@@ -56,13 +57,30 @@ authRequest : String -> String -> String -> Http.Request AuthenticationResponse
 authRequest baseUrl email password =
     Http.request
         { body = authRequestEncode email password |> Http.jsonBody
-        , expect = Http.expectJson authResponseDecode
+        , expect = expectJsonLog authResponseDecode
         , headers = []
         , method = "POST"
         , timeout = Just requestTimeout
         , url = baseUrl ++ "/auth"
         , withCredentials = False
         }
+
+
+expectJsonLog : Decode.Decoder a -> Http.Expect a
+expectJsonLog decoder =
+    Http.expectStringResponse <|
+        \response ->
+            let
+                _ =
+                    Debug.log "DECODE!!!!!!!!" "blubb"
+            in
+            case Decode.decodeString decoder response.body of
+                Err decodeError ->
+                    Err "DecodeError"
+
+                -- (Decode.errorToString decodeError)
+                Ok value ->
+                    Ok value
 
 
 authRequestEncode : String -> String -> Encode.Value
@@ -131,6 +149,11 @@ saveAuthentication authRes time =
         ]
 
 
+authenticationHeaders : Globals.Types.Authentication -> List Http.Header
+authenticationHeaders auth =
+    List.singleton <| Http.header "Authorization" <| "Bearer " ++ auth.token
+
+
 isAuthenticated : Globals.Types.Model -> Bool
 isAuthenticated globals =
     case globals.auth of
@@ -138,9 +161,11 @@ isAuthenticated globals =
             case globals.time of
                 Just time ->
                     auth.validUntil >= time
+
                 Nothing ->
                     -- Let's hope the token is still valid, as soon as the
                     -- first time tick arrives we'll get thrown out otherwise
                     True
+
         Nothing ->
             False

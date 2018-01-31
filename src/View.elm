@@ -27,28 +27,89 @@ view model =
             div []
                 [ menu False model
                 , br [] []
-                , Grid.container [] [ h1 [] [ text "Loading..." ] ]
+                , Grid.container []
+                    [ Grid.row []
+                        [ Grid.col [] [ h1 [] [ text "Loading..." ] ] ]
+                    , Grid.row []
+                        [ Grid.col []
+                            [ br [] []
+                            , br [] []
+                            , hr [] []
+                            , footer model.globals <| text ""
+                            ]
+                        ]
+                    ]
                 ]
 
         Just _ ->
+            let
+                ( bodyContent, footerContent ) =
+                    content model
+            in
             div []
                 [ menu (isAuthenticated model.globals) model
                 , br [] []
-                , Grid.container [] [ content model ]
+                , Grid.container []
+                    [ Grid.row []
+                        [ Grid.col [] [ bodyContent ] ]
+                    , Grid.row []
+                        [ Grid.col []
+                            [ br [] []
+                            , br [] []
+                            , hr [] []
+                            , footer model.globals footerContent
+                            ]
+                        ]
+                    ]
                 ]
 
 
-content : Model.Model -> Html Msg.Msg
+content : Model.Model -> ( Html Msg.Msg, Html Msg.Msg )
 content model =
     case model.globals.page of
         NotFoundPage ->
-            Html.map Msg.Login Components.NotFound.view
+            ( Html.map Msg.Login Components.NotFound.view, text "" )
 
         LoginPage ->
-            Html.map Msg.Login (Components.Login.view model.login model.globals)
+            ( Html.map Msg.Login (Components.Login.view model.login model.globals), text "" )
 
         DashboardPage ->
-            Html.map Msg.Dashboard (Components.Dashboard.view model.dashboard model.globals)
+            let
+                ( bodyContent, footerContent ) =
+                    Components.Dashboard.view model.dashboard model.globals
+            in
+            ( Html.map Msg.Dashboard bodyContent, Html.map Msg.Dashboard footerContent )
+
+
+footer : Globals.Types.Model -> Html msg -> Html msg
+footer globals customFooter =
+    div [ style <| List.singleton ( "float", "clear" ) ]
+        [ div [ style [ ( "float", "left" ), ( "margin-right", "30px" ) ] ]
+            [ p []
+                ([ text <| "flatr - "
+                 , code []
+                    [ text "shell"
+                    , text " v"
+                    , text globals.version
+                    ]
+                 ]
+                    ++ (case globals.serverInfo of
+                            Nothing ->
+                                []
+
+                            Just info ->
+                                [ text " - connected to "
+                                , code []
+                                    [ text "core"
+                                    , text " v"
+                                    , text "0.0.1"
+                                    ]
+                                ]
+                       )
+                )
+            ]
+        , div [ style <| List.singleton ( "float", "right" ) ] [ customFooter ]
+        ]
 
 
 menu : Bool -> Model.Model -> Html Msg.Msg
@@ -60,12 +121,20 @@ menu navigationEnabled model =
         |> Navbar.view model.navState
 
 
+itemLinkDynamic : Pages.Page -> Pages.Page -> List (Html.Attribute msg) -> List (Html.Html msg) -> Navbar.Item msg
+itemLinkDynamic dstPage currentPage attrs elems =
+    if dstPage == currentPage then
+        Navbar.itemLinkActive attrs elems
+    else
+        Navbar.itemLink attrs elems
+
+
 navbarItems : Bool -> Model.Model -> Config Msg -> Config Msg
 navbarItems authenticated model config =
     if authenticated then
         config
             |> Navbar.items
-                [ Navbar.itemLink [ href "#" ] [ text "Dashboard" ]
+                [ itemLinkDynamic DashboardPage model.globals.page [ href "#" ] [ text "Dashboard" ]
                 , Navbar.itemLink [ href "#cleaning-schedule" ] [ text "Cleaning Schedule" ]
                 ]
             |> Navbar.customItems

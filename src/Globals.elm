@@ -57,6 +57,9 @@ update msg model =
         SaveAuthentication auth ->
             { model | auth = Just auth } !: []
 
+        SaveServerInfo serverInfo ->
+            { model | serverInfo = Just serverInfo } !: []
+
         CheckRedirectLogin ->
             checkRedirectLogin model Cmd.none
 

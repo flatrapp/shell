@@ -15,10 +15,10 @@ type alias Model =
     }
 
 
-initialModel : Location -> Bootstrap.Navbar.State -> Model
-initialModel location navState =
+initialModel : Location -> Bootstrap.Navbar.State -> Int -> Model
+initialModel location navState timezoneOffset =
     { login = Components.Login.initialModel
     , dashboard = Components.Dashboard.initialModel
-    , globals = Globals.Types.initialModel location
+    , globals = Globals.Types.initialModel location timezoneOffset
     , navState = navState
     }

@@ -9,9 +9,10 @@ import Helpers.Operators exposing ((:>))
 import Model exposing (Model, initialModel)
 import Msg exposing (Msg(..))
 import Navigation exposing (Location)
+import Task
 import Time exposing (second)
 import View exposing (view)
-import Task
+
 
 main : Program Flags Model.Model Msg.Msg
 main =
@@ -24,7 +25,9 @@ main =
 
 
 type alias Flags =
-    { auth : Maybe Globals.Types.Authentication }
+    { auth : Maybe Globals.Types.Authentication
+    , timezoneOffset : Int
+    }
 
 
 init : Flags -> Location -> ( Model.Model, Cmd Msg.Msg )
@@ -34,7 +37,7 @@ init flags location =
             Navbar.initialState NavbarEvent
 
         ( model, cmd ) =
-            update Msg.AppInitialized (Model.initialModel location navState)
+            update Msg.AppInitialized (Model.initialModel location navState flags.timezoneOffset)
 
         ( newGlobals, authSaveGlobalsCmd, authSaveMainCmd ) =
             case flags.auth of
@@ -47,7 +50,8 @@ init flags location =
         authSaveCmd =
             Cmd.batch [ Cmd.map Globals authSaveGlobalsCmd, authSaveMainCmd ]
 
-        timeCmd = Task.perform Msg.TimeTick Time.now
+        timeCmd =
+            Task.perform Msg.TimeTick Time.now
     in
     { model | globals = newGlobals } ! [ navCmd, cmd, authSaveCmd, timeCmd ]
 
@@ -85,6 +89,7 @@ update msg model =
                 ( newModel, msgs ) =
                     ( model, [] )
                         :> update (Msg.Globals (Globals.Types.TimeTick time))
+                        :> update (Msg.Dashboard (Components.Dashboard.TimeTick time))
 
                 --:> update (Model.Login Components.Login.AppInitialized)
             in
@@ -99,10 +104,10 @@ update msg model =
 
         Dashboard dmsg ->
             let
-                ( newModel, cmd ) =
+                ( newModel, cmd, globalsCmd ) =
                     Components.Dashboard.update dmsg model.dashboard model.globals
             in
-            { model | dashboard = newModel } ! [ Cmd.map Dashboard cmd ]
+            { model | dashboard = newModel } ! [ Cmd.map Dashboard cmd, Cmd.map Globals globalsCmd ]
 
         Globals gmsg ->
             let

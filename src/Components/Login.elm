@@ -6,6 +6,7 @@ import Bootstrap.Form.Input as Input exposing (onInput)
 import Globals.Types
 import Helpers.Authentication exposing (..)
 import Helpers.Operators exposing ((!:), (!>))
+import Helpers.Server exposing (..)
 import Html exposing (Html, div, h1, text)
 import Html.Attributes exposing (for, style)
 import Html.Events exposing (onSubmit)
@@ -37,12 +38,22 @@ type Msg
     | PasswordChange String
     | AuthResponse (Result Http.Error AuthenticationResponse)
     | ViewState Bool
+    | ServerInfoResponse (Result Http.Error Helpers.Server.ServerInfoResponse)
 
 
 send : msg -> Cmd msg
 send msg =
     Task.succeed msg
         |> Task.perform identity
+
+
+
+-- RequestAuthentication ->
+--     let
+--         req =
+--             authRequest globals.apiBaseUrl model.email model.password
+--     in
+--     model !> ( [ Http.send AuthResponse req ], [] )
 
 
 update : Msg -> Model -> Globals.Types.Model -> ( Model, Cmd Msg, Cmd Globals.Types.Msg )
@@ -55,22 +66,6 @@ update msg model globals =
             in
             model !: []
 
-        RequestAuthentication ->
-            let
-                req =
-                    authRequest globals.apiBaseUrl model.email model.password
-            in
-            model !> ( [ Http.send AuthResponse req ], [] )
-
-        EmailChange email ->
-            { model | email = email } !> ( [], [] )
-
-        PasswordChange password ->
-            { model | password = password } !: []
-
-        AuthResponse res ->
-            model !> ( [], [ handleAuthResponse globals res ] )
-
         ViewState state ->
             case state of
                 False ->
@@ -78,6 +73,32 @@ update msg model globals =
 
                 True ->
                     model !: []
+
+        EmailChange email ->
+            { model | email = email } !> ( [], [] )
+
+        PasswordChange password ->
+            { model | password = password } !: []
+
+        RequestAuthentication ->
+            -- Request server info first
+            -- This has the additional benefit of checking whether this server even implements
+            -- the /info endpoint; therefore checks network connection and whether it may be a genuine flatr server
+            model !: [ Http.send ServerInfoResponse (serverInfoRequest globals.apiBaseUrl) ]
+
+        ServerInfoResponse res ->
+            case decodeServerInfoResponse res of
+                ServerInfoSuccessResponse info ->
+                    model
+                        !> ( [ Http.send AuthResponse (authRequest globals.apiBaseUrl model.email model.password) ]
+                           , [ send <| Globals.Types.SaveServerInfo info ]
+                           )
+
+                ServerInfoErrorResponse ->
+                    model !> ( [], [ send <| Globals.Types.Alert "Error while trying to retrieve the ServerInfo" ] )
+
+        AuthResponse res ->
+            model !> ( [], [ handleAuthResponse globals res ] )
 
 
 handleAuthResponse : Globals.Types.Model -> Result err AuthenticationResponse -> Cmd Globals.Types.Msg

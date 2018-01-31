@@ -1,8 +1,9 @@
 module Components.NotFound exposing (..)
 
-import Html exposing (Html, text, br, a, p)
-import Html.Attributes exposing (href)
 import Bootstrap.Alert as Alert
+import Html exposing (Html, a, br, p, text)
+import Html.Attributes exposing (href)
+
 
 view : Html msg
 view =
