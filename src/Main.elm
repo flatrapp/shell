@@ -52,8 +52,13 @@ init flags location =
 
         timeCmd =
             Task.perform Msg.TimeTick Time.now
+
+        reqServerInfoCmd =
+            case flags.auth of
+                Nothing -> Cmd.none
+                Just auth -> Cmd.map Globals (send <| Globals.Types.RequestServerInfo auth)
     in
-    { model | globals = newGlobals } ! [ navCmd, cmd, authSaveCmd, timeCmd ]
+    { model | globals = newGlobals } ! [ navCmd, cmd, authSaveCmd, timeCmd, reqServerInfoCmd ]
 
 
 updateWrapper : Msg.Msg -> Model.Model -> ( Model.Model, Cmd Msg.Msg )

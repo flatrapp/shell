@@ -21,6 +21,7 @@ try {
 }
 
 if (typeof currentAuth === "object" && currentAuth !== null) {
+    if (typeof currentAuth.serverUrl !== "string") clearAuth();
     if (typeof currentAuth.token !== "string") clearAuth();
     if (typeof currentAuth.tokenId !== "string") clearAuth();
     if (typeof currentAuth.validUntil !== "number") clearAuth();

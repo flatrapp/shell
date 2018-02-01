@@ -98,13 +98,14 @@ footer globals customFooter =
                                 []
 
                             Just info ->
+                                if (isAuthenticated globals) then
                                 [ text " - connected to "
                                 , code []
-                                    [ text "core"
-                                    , text " v"
-                                    , text "0.0.1"
+                                    [ text info.name
+                                    , text " "
+                                    , text info.version
                                     ]
-                                ]
+                                ] else []
                        )
                 )
             ]

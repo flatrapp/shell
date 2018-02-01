@@ -5,6 +5,7 @@ import Json.Decode as Decode
 import Json.Decode.Pipeline as DecodePipeline exposing (decode, required)
 import Json.Encode as Encode
 import Time
+import Globals.Types exposing (ServerInfoResponse(..))
 
 
 requestTimeout : Float
@@ -17,20 +18,17 @@ type alias ServerInfo =
     }
 
 
-type ServerInfoResponse
-    = ServerInfoSuccessResponse ServerInfo
-    | ServerInfoErrorResponse
 
 
 serverInfoRequest : String -> Http.Request ServerInfoResponse
-serverInfoRequest baseUrl =
+serverInfoRequest serverUrl =
     Http.request
         { body = Http.emptyBody
         , expect = Http.expectJson serverInfoSuccessDecoder
         , headers = []
         , method = "GET"
         , timeout = Just requestTimeout
-        , url = baseUrl ++ "/info"
+        , url = serverUrl ++ "/info"
         , withCredentials = False
         }
 
@@ -38,12 +36,14 @@ serverInfoRequest baseUrl =
 serverInfoSuccessDecoder : Decode.Decoder ServerInfoResponse
 serverInfoSuccessDecoder =
     DecodePipeline.decode
-        (\version ->
+        (\version name ->
             ServerInfoSuccessResponse
                 { version = version
+                , name = name
                 }
         )
         |> DecodePipeline.required "version" Decode.string
+        |> DecodePipeline.required "name" Decode.string
 
 
 decodeServerInfoResponse : Result Http.Error ServerInfoResponse -> ServerInfoResponse

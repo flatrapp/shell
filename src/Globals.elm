@@ -3,15 +3,17 @@ port module Globals exposing (..)
 import Bootstrap.Navbar as Navbar
 import Components.Dashboard as Dashboard
 import Components.Login as Login
-import Globals.Types exposing (Authentication, Model, Msg(..))
+import Globals.Types exposing (Authentication, Model, Msg(..), ServerInfoResponse(..))
 import Helpers.Alert exposing (sendAlert)
 import Helpers.Authentication exposing (isAuthenticated)
 import Helpers.Operators exposing ((!:), (!>))
+import Helpers.Server exposing (serverInfoRequest, decodeServerInfoResponse)
 import Msg
 import Navigation exposing (Location)
 import Pages exposing (Page(..), parseLocation)
 import Task
 import Time exposing (Time)
+import Http
 
 
 port clearAuthLocalStorage : () -> Cmd msg
@@ -62,6 +64,16 @@ update msg model =
 
         CheckRedirectLogin ->
             checkRedirectLogin model Cmd.none
+        ServerInfoResponse res ->
+            case decodeServerInfoResponse res of
+                ServerInfoSuccessResponse info ->
+                    model !: [ send <| Globals.Types.SaveServerInfo info ]
+
+                ServerInfoErrorResponse ->
+                    model !: [ send <| Globals.Types.Alert "Error while trying to retrieve the ServerInfo" ] 
+
+        RequestServerInfo auth ->
+            model !: [ Http.send ServerInfoResponse (serverInfoRequest auth.serverUrl) ]
 
         Logout ->
             { model | auth = Nothing } !: [ clearAuthLocalStorage () ]

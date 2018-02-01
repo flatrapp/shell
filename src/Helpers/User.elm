@@ -33,15 +33,15 @@ type CurrentUserResponse
     | CurrentUserParsingError
 
 
-currentUserRequest : String -> Authentication -> Http.Request CurrentUserResponse
-currentUserRequest baseUrl auth =
+currentUserRequest : Authentication -> Http.Request CurrentUserResponse
+currentUserRequest auth =
     Http.request
         { body = Http.emptyBody
         , expect = Http.expectJson currentUserSuccessDecoder
         , headers = authenticationHeaders auth
         , method = "GET"
         , timeout = Just requestTimeout
-        , url = baseUrl ++ "/users/current"
+        , url = auth.serverUrl ++ "/users/current"
         , withCredentials = False
         }
 

@@ -93,7 +93,7 @@ update msg model globals =
                         Just time ->
                             { model | lastUpdate = time }
                                 !: [ Http.send CurrentUserResponse <|
-                                        User.currentUserRequest globals.apiBaseUrl auth
+                                        User.currentUserRequest auth
                                    ]
 
                         Nothing ->

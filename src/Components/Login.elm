@@ -21,6 +21,8 @@ import Task
 type alias Model =
     { email : String
     , password : String
+    , serverInput : String
+    , serverUrl : String
     }
 
 
@@ -28,6 +30,8 @@ initialModel : Model
 initialModel =
     { email = ""
     , password = ""
+    , serverInput = ""
+    , serverUrl = "http://localhost:8080"
     }
 
 
@@ -38,7 +42,6 @@ type Msg
     | PasswordChange String
     | AuthResponse (Result Http.Error AuthenticationResponse)
     | ViewState Bool
-    | ServerInfoResponse (Result Http.Error Helpers.Server.ServerInfoResponse)
 
 
 send : msg -> Cmd msg
@@ -81,41 +84,45 @@ update msg model globals =
             { model | password = password } !: []
 
         RequestAuthentication ->
-            -- Request server info first
-            -- This has the additional benefit of checking whether this server even implements
-            -- the /info endpoint; therefore checks network connection and whether it may be a genuine flatr server
-            model !: [ Http.send ServerInfoResponse (serverInfoRequest globals.apiBaseUrl) ]
-
-        ServerInfoResponse res ->
-            case decodeServerInfoResponse res of
-                ServerInfoSuccessResponse info ->
-                    model
-                        !> ( [ Http.send AuthResponse (authRequest globals.apiBaseUrl model.email model.password) ]
-                           , [ send <| Globals.Types.SaveServerInfo info ]
-                           )
-
-                ServerInfoErrorResponse ->
-                    model !> ( [], [ send <| Globals.Types.Alert "Error while trying to retrieve the ServerInfo" ] )
+            model !: [ Http.send AuthResponse (authRequest model.serverUrl model.email model.password) ]
 
         AuthResponse res ->
-            model !> ( [], [ handleAuthResponse globals res ] )
+            model
+                !> ( []
+                   , [ handleAuthResponse globals
+                        model.serverUrl
+                        (\auth -> send <| Globals.Types.RequestServerInfo auth)
+                        res
+                     ]
+                   )
 
 
-handleAuthResponse : Globals.Types.Model -> Result err AuthenticationResponse -> Cmd Globals.Types.Msg
-handleAuthResponse globals res =
+handleAuthResponse :
+    Globals.Types.Model
+    -> String
+    -> (Globals.Types.Authentication -> Cmd Globals.Types.Msg)
+    -> Result err AuthenticationResponse
+    -> Cmd Globals.Types.Msg
+handleAuthResponse globals serverUrl successCmdFn res =
     case res of
         Err err ->
             send (Globals.Types.Alert "Http.Error")
 
         Ok authResponse ->
             case authResponse of
-                AuthenticationSuccessResponse auth ->
+                AuthenticationSuccessResponse authSuccess ->
                     case globals.time of
                         Nothing ->
                             send (Globals.Types.Alert "No time tick received yet")
 
                         Just time ->
                             let
+                                auth =
+                                    toAuthentication serverUrl authSuccess time
+
+                                successCmd =
+                                    successCmdFn auth
+
                                 destinationHash =
                                     case globals.loginDestLocation.hash of
                                         "" ->
@@ -125,7 +132,8 @@ handleAuthResponse globals res =
                                             x
                             in
                             Cmd.batch
-                                [ saveAuthentication auth time
+                                [ saveAuthentication auth
+                                , successCmd
                                 , Navigation.newUrl destinationHash
                                 ]
 

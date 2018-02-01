@@ -3,6 +3,7 @@ module Globals.Types exposing (..)
 import Navigation exposing (Location)
 import Pages
 import Time
+import Http
 
 
 type Msg
@@ -13,11 +14,17 @@ type Msg
     | SaveAuthentication Authentication
     | SaveServerInfo ServerInfo
     | CheckRedirectLogin
+    | RequestServerInfo Authentication
+    | ServerInfoResponse (Result Http.Error ServerInfoResponse)
     | Logout
 
+type ServerInfoResponse
+    = ServerInfoSuccessResponse ServerInfo
+    | ServerInfoErrorResponse
 
 type alias Authentication =
-    { token : String
+    { serverUrl : String
+    , token : String
     , tokenId : String
     , validUntil : Float
     }
@@ -25,6 +32,7 @@ type alias Authentication =
 
 type alias ServerInfo =
     { version : String
+    , name : String
     }
 
 
@@ -32,7 +40,6 @@ type alias Model =
     { page : Pages.Page
     , location : Location
     , loginDestLocation : Location
-    , apiBaseUrl : String
     , time : Maybe Time.Time
     , timezoneOffset : Int
     , auth : Maybe Authentication
@@ -46,7 +53,6 @@ initialModel location timezoneOffset =
     { page = Pages.parseLocation location
     , location = location
     , loginDestLocation = location
-    , apiBaseUrl = "http://localhost:8000"
     , time = Nothing
     , timezoneOffset = timezoneOffset
     , auth = Nothing

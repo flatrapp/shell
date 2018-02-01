@@ -1,6 +1,6 @@
 port module Helpers.Authentication exposing (..)
 
-import Globals.Types
+import Globals.Types exposing (Authentication)
 import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as DecodePipeline exposing (decode, required)
@@ -14,10 +14,11 @@ import Time exposing (second)
 port saveAuthLocalStorage : Encode.Value -> Cmd msg
 
 
-encodeAuthLocalStorage : Globals.Types.Authentication -> Encode.Value
+encodeAuthLocalStorage : Authentication -> Encode.Value
 encodeAuthLocalStorage auth =
     Encode.object
-        [ ( "token", Encode.string auth.token )
+        [ ( "serverUrl", Encode.string auth.serverUrl )
+        , ( "token", Encode.string auth.token )
         , ( "tokenId", Encode.string auth.tokenId )
         , ( "validUntil", Encode.float auth.validUntil )
         ]
@@ -54,14 +55,14 @@ requestTimeout =
 
 
 authRequest : String -> String -> String -> Http.Request AuthenticationResponse
-authRequest baseUrl email password =
+authRequest serverUrl email password =
     Http.request
         { body = authRequestEncode email password |> Http.jsonBody
         , expect = expectJsonLog authResponseDecode
         , headers = []
         , method = "POST"
         , timeout = Just requestTimeout
-        , url = baseUrl ++ "/auth"
+        , url = serverUrl ++ "/auth"
         , withCredentials = False
         }
 
@@ -70,10 +71,6 @@ expectJsonLog : Decode.Decoder a -> Http.Expect a
 expectJsonLog decoder =
     Http.expectStringResponse <|
         \response ->
-            let
-                _ =
-                    Debug.log "DECODE!!!!!!!!" "blubb"
-            in
             case Decode.decodeString decoder response.body of
                 Err decodeError ->
                     Err "DecodeError"
@@ -134,22 +131,24 @@ authResponseDecode =
     Decode.oneOf [ authResponseErrorDecoder, authResponseSuccessDecoder ]
 
 
-saveAuthentication : AuthenticationSuccessResponseContent -> Time.Time -> Cmd Globals.Types.Msg
-saveAuthentication authRes time =
-    let
-        auth =
-            { token = authRes.token
+toAuthentication : String -> AuthenticationSuccessResponseContent -> Time.Time -> Authentication
+toAuthentication serverUrl authRes time =
+            { serverUrl = serverUrl
+            , token = authRes.token
             , tokenId = authRes.tokenId
             , validUntil = time + toFloat authRes.validFor * Time.second
             }
-    in
+
+saveAuthentication : Authentication -> Cmd Globals.Types.Msg
+saveAuthentication auth =
     Cmd.batch
         [ send <| Globals.Types.SaveAuthentication auth
         , saveAuthLocalStorage <| encodeAuthLocalStorage auth
         ]
 
 
-authenticationHeaders : Globals.Types.Authentication -> List Http.Header
+
+authenticationHeaders : Authentication -> List Http.Header
 authenticationHeaders auth =
     List.singleton <| Http.header "Authorization" <| "Bearer " ++ auth.token
 
@@ -161,7 +160,7 @@ isAuthenticated globals =
             case globals.time of
                 Just time ->
                     auth.validUntil >= time
-
+                        
                 Nothing ->
                     -- Let's hope the token is still valid, as soon as the
                     -- first time tick arrives we'll get thrown out otherwise
