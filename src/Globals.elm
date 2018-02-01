@@ -1,6 +1,5 @@
 port module Globals exposing (..)
 
-import Bootstrap.Navbar as Navbar
 import Components.Dashboard as Dashboard
 import Components.Login as Login
 import Globals.Types exposing (Authentication, Model, Msg(..), ServerInfoResponse(..))
@@ -12,7 +11,6 @@ import Msg
 import Navigation exposing (Location)
 import Pages exposing (Page(..), parseLocation)
 import Task
-import Time exposing (Time)
 import Http
 
 
@@ -82,14 +80,14 @@ update msg model =
 checkRedirectLogin : Model -> Cmd Msg -> ( Model, Cmd Msg, Cmd Msg.Msg )
 checkRedirectLogin model otherCmd =
     -- check if the user is authenticated
-    if not (isAuthenticated model) && model.page /= Pages.LoginPage then
+    if not (isAuthenticated model) && model.page /= Pages.LoginPage && model.page /= Pages.SignupPage then
         -- not authenticated, switch to the login page
         { model
             | page = Pages.LoginPage
             , loginDestLocation = model.location
         }
             !: [ Navigation.modifyUrl "#login", otherCmd ]
-    else if isAuthenticated model && model.page == Pages.LoginPage then
+    else if isAuthenticated model && (model.page == Pages.LoginPage || model.page == Pages.SignupPage) then
         { model
             | page = Pages.DashboardPage
         }

@@ -3,6 +3,7 @@ module Main exposing (main)
 import Bootstrap.Navbar as Navbar
 import Components.Dashboard exposing (Model, Msg)
 import Components.Login exposing (Model, Msg)
+import Components.Signup exposing (Model, Msg)
 import Globals exposing (..)
 import Globals.Types
 import Helpers.Operators exposing ((:>))
@@ -82,6 +83,7 @@ update msg model =
                     ( model, [] )
                         :> update (Msg.Globals Globals.Types.AppInitialized)
                         :> update (Msg.Login Components.Login.AppInitialized)
+                        :> update (Msg.Signup Components.Signup.AppInitialized)
             in
             newModel ! msgs
 
@@ -106,6 +108,13 @@ update msg model =
                     Components.Login.update lmsg model.login model.globals
             in
             { model | login = newModel } ! [ Cmd.map Login cmd, Cmd.map Globals globalsCmd ]
+
+        Signup smsg ->
+            let
+                ( newModel, cmd, globalsCmd ) =
+                    Components.Signup.update smsg model.signup model.globals
+            in
+            { model | signup = newModel } ! [ Cmd.map Signup cmd, Cmd.map Globals globalsCmd ]
 
         Dashboard dmsg ->
             let

@@ -5,7 +5,6 @@ import Helpers.Authentication exposing (authenticationHeaders)
 import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as DecodePipeline exposing (decode, required)
-import Json.Encode as Encode
 import Time
 
 

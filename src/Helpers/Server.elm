@@ -1,11 +1,10 @@
 module Helpers.Server exposing (..)
 
+import Globals.Types exposing (ServerInfoResponse(..))
 import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as DecodePipeline exposing (decode, required)
-import Json.Encode as Encode
 import Time
-import Globals.Types exposing (ServerInfoResponse(..))
 
 
 requestTimeout : Float
@@ -16,8 +15,6 @@ requestTimeout =
 type alias ServerInfo =
     { version : String
     }
-
-
 
 
 serverInfoRequest : String -> Http.Request ServerInfoResponse

@@ -6,6 +6,7 @@ import UrlParser exposing (..)
 
 type Page
     = LoginPage
+    | SignupPage
     | DashboardPage
     | NotFoundPage
 
@@ -19,6 +20,7 @@ locationMatchers =
     oneOf
         [ map DashboardPage top
         , map LoginPage (s "login")
+        , map SignupPage (s "signup")
         ]
 
 

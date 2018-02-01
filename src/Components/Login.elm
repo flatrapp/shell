@@ -6,16 +6,12 @@ import Bootstrap.Form.Input as Input exposing (onInput)
 import Globals.Types
 import Helpers.Authentication exposing (..)
 import Helpers.Operators exposing ((!:), (!>))
-import Helpers.Server exposing (..)
-import Html exposing (Html, div, h1, text)
-import Html.Attributes exposing (for, style)
+import Html exposing (Html, div, h1, text, a)
+import Html.Attributes exposing (for, style, href)
 import Html.Events exposing (onSubmit)
 import Http
 import Navigation
 import Task
-
-
--- (!) = Helpers.Operators.(!)
 
 
 type alias Model =
@@ -50,23 +46,10 @@ send msg =
         |> Task.perform identity
 
 
-
--- RequestAuthentication ->
---     let
---         req =
---             authRequest globals.apiBaseUrl model.email model.password
---     in
---     model !> ( [ Http.send AuthResponse req ], [] )
-
-
 update : Msg -> Model -> Globals.Types.Model -> ( Model, Cmd Msg, Cmd Globals.Types.Msg )
 update msg model globals =
     case msg of
         AppInitialized ->
-            let
-                _ =
-                    Debug.log "hello" "world from app init login"
-            in
             model !: []
 
         ViewState state ->
@@ -162,6 +145,9 @@ view model globals =
                     , text "over a secure HTTPS connection!"
                     ]
                 ]
-            , Button.button [ Button.primary ] [ text "Login" ]
+            , div [ style [ ( "float", "clear" ) ] ]
+                [ div [ style [ ( "float", "left" ) ] ] [ Button.button [ Button.primary ] [ text "Login" ] ]
+                , div [ style [ ( "float", "right" ) ] ] [ Button.linkButton [ Button.secondary, Button.attrs [ href "#signup"] ] [ text "Signup for a new account" ] ]
+                ]
             ]
         ]

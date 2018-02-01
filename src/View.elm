@@ -1,14 +1,12 @@
 module View exposing (view)
 
 import Bootstrap.Button as Button
-import Bootstrap.Form.Input as Input
-import Bootstrap.Form.InputGroup as InputGroup
 import Bootstrap.Grid as Grid
-import Bootstrap.Grid.Col as Col
 import Bootstrap.Navbar as Navbar exposing (..)
 import Components.Dashboard exposing (view)
 import Components.Login exposing (view)
 import Components.NotFound
+import Components.Signup exposing (view)
 import Globals.Types
 import Helpers.Authentication exposing (isAuthenticated)
 import Html exposing (..)
@@ -73,6 +71,9 @@ content model =
         LoginPage ->
             ( Html.map Msg.Login (Components.Login.view model.login model.globals), text "" )
 
+        SignupPage ->
+            ( Html.map Msg.Signup (Components.Signup.view model.signup model.globals), text "" )
+
         DashboardPage ->
             let
                 ( bodyContent, footerContent ) =
@@ -98,14 +99,16 @@ footer globals customFooter =
                                 []
 
                             Just info ->
-                                if (isAuthenticated globals) then
-                                [ text " - connected to "
-                                , code []
-                                    [ text info.name
-                                    , text " "
-                                    , text info.version
+                                if isAuthenticated globals then
+                                    [ text " - connected to "
+                                    , code []
+                                        [ text info.name
+                                        , text " "
+                                        , text info.version
+                                        ]
                                     ]
-                                ] else []
+                                else
+                                    []
                        )
                 )
             ]

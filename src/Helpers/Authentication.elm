@@ -6,7 +6,6 @@ import Json.Decode as Decode
 import Json.Decode.Pipeline as DecodePipeline exposing (decode, required)
 import Json.Encode as Encode
 import List
-import RemoteData
 import Task
 import Time exposing (second)
 
@@ -39,9 +38,23 @@ type AuthenticationResponse
         }
 
 
+type SignupResponse
+    = SignupSuccessResponse
+      -- TODO: Handle errors
+    | SignupErrorResponse
+
+
 type AuthenticationError
     = BadEmailPasswordError
     | UnknownAuthenticationError String
+
+
+type alias SignupRequestData =
+    { firstName : String
+    , lastName : String
+    , email : String
+    , password : String
+    }
 
 
 send : msg -> Cmd msg
@@ -50,6 +63,7 @@ send msg =
         |> Task.perform identity
 
 
+requestTimeout : Float
 requestTimeout =
     5 * second
 
@@ -58,7 +72,7 @@ authRequest : String -> String -> String -> Http.Request AuthenticationResponse
 authRequest serverUrl email password =
     Http.request
         { body = authRequestEncode email password |> Http.jsonBody
-        , expect = expectJsonLog authResponseDecode
+        , expect = Http.expectJson authResponseDecode
         , headers = []
         , method = "POST"
         , timeout = Just requestTimeout
@@ -67,17 +81,18 @@ authRequest serverUrl email password =
         }
 
 
-expectJsonLog : Decode.Decoder a -> Http.Expect a
-expectJsonLog decoder =
-    Http.expectStringResponse <|
-        \response ->
-            case Decode.decodeString decoder response.body of
-                Err decodeError ->
-                    Err "DecodeError"
+signupRequest : String -> SignupRequestData -> Http.Request SignupResponse
+signupRequest serverUrl data =
+    Http.request
+        { body = signupRequestEncode data |> Http.jsonBody
+        , expect = Http.expectJson signupResponseSuccessDecoder
+        , headers = []
+        , method = "POST"
+        , timeout = Just requestTimeout
+        , url = serverUrl ++ "/users"
+        , withCredentials = False
+        }
 
-                -- (Decode.errorToString decodeError)
-                Ok value ->
-                    Ok value
 
 
 authRequestEncode : String -> String -> Encode.Value
@@ -86,6 +101,19 @@ authRequestEncode email password =
         attributes =
             [ ( "email", Encode.string email )
             , ( "password", Encode.string password )
+            ]
+    in
+    Encode.object attributes
+
+
+signupRequestEncode : SignupRequestData -> Encode.Value
+signupRequestEncode data =
+    let
+        attributes =
+            [ ( "firstName", Encode.string data.firstName )
+            , ( "lastName", Encode.string data.lastName )
+            , ( "email", Encode.string data.email )
+            , ( "password", Encode.string data.password )
             ]
     in
     Encode.object attributes
@@ -131,13 +159,27 @@ authResponseDecode =
     Decode.oneOf [ authResponseErrorDecoder, authResponseSuccessDecoder ]
 
 
+decodeSignupResponse : Result Http.Error SignupResponse -> SignupResponse
+decodeSignupResponse res =
+    case res of
+        Ok success ->
+            success
+
+        Err _ ->
+            SignupErrorResponse
+
+signupResponseSuccessDecoder : Decode.Decoder SignupResponse
+signupResponseSuccessDecoder =
+    DecodePipeline.decode SignupSuccessResponse
+
 toAuthentication : String -> AuthenticationSuccessResponseContent -> Time.Time -> Authentication
 toAuthentication serverUrl authRes time =
-            { serverUrl = serverUrl
-            , token = authRes.token
-            , tokenId = authRes.tokenId
-            , validUntil = time + toFloat authRes.validFor * Time.second
-            }
+    { serverUrl = serverUrl
+    , token = authRes.token
+    , tokenId = authRes.tokenId
+    , validUntil = time + toFloat authRes.validFor * Time.second
+    }
+
 
 saveAuthentication : Authentication -> Cmd Globals.Types.Msg
 saveAuthentication auth =
@@ -145,7 +187,6 @@ saveAuthentication auth =
         [ send <| Globals.Types.SaveAuthentication auth
         , saveAuthLocalStorage <| encodeAuthLocalStorage auth
         ]
-
 
 
 authenticationHeaders : Authentication -> List Http.Header
@@ -160,7 +201,7 @@ isAuthenticated globals =
             case globals.time of
                 Just time ->
                     auth.validUntil >= time
-                        
+
                 Nothing ->
                     -- Let's hope the token is still valid, as soon as the
                     -- first time tick arrives we'll get thrown out otherwise
