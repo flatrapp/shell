@@ -2,12 +2,12 @@ module Components.Login exposing (..)
 
 import Bootstrap.Button as Button
 import Bootstrap.Form as Form
-import Bootstrap.Form.Input as Input exposing (onInput)
+import Bootstrap.Form.Input as Input exposing (onInput, value)
 import Globals.Types
 import Helpers.Authentication exposing (..)
 import Helpers.Operators exposing ((!:), (!>))
 import Html exposing (Html, div, h1, text, a)
-import Html.Attributes exposing (for, style, href)
+import Html.Attributes exposing (for, style, href, id)
 import Html.Events exposing (onSubmit)
 import Http
 import Navigation
@@ -17,17 +17,19 @@ import Task
 type alias Model =
     { email : String
     , password : String
+    , serverInputDefault : String
     , serverInput : String
     , serverUrl : String
     }
 
 
-initialModel : Model
-initialModel =
+initialModel : String -> Model
+initialModel serverInput =
     { email = ""
     , password = ""
-    , serverInput = ""
-    , serverUrl = "http://localhost:8080"
+    , serverInputDefault = serverInput
+    , serverInput = serverInput
+    , serverUrl = serverInput
     }
 
 
@@ -55,7 +57,7 @@ update msg model globals =
         ViewState state ->
             case state of
                 False ->
-                    initialModel !: []
+                    initialModel model.serverInputDefault !: []
 
                 True ->
                     model !: []
@@ -129,14 +131,14 @@ view : Model -> Globals.Types.Model -> Html Msg
 view model globals =
     div []
         [ h1 [ style [ ( "margin-bottom", "1.2em" ) ] ] [ text "Login" ]
-        , Form.form [ onSubmit RequestAuthentication ]
+        , Form.form [ id "login-form", onSubmit RequestAuthentication ]
             [ Form.group []
                 [ Form.label [ for "email" ] [ text "E-Mail:" ]
-                , Input.email [ Input.id "email", onInput EmailChange ]
+                , Input.email [ Input.id "email", onInput EmailChange, value model.email ]
                 ]
             , Form.group []
                 [ Form.label [ for "password" ] [ text "Password:" ]
-                , Input.password [ Input.id "password", onInput PasswordChange ]
+                , Input.password [ Input.id "password", onInput PasswordChange, value model.password ]
                 ]
             , Form.group []
                 [ Form.help []

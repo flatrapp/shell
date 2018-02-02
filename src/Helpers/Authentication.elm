@@ -39,7 +39,7 @@ type AuthenticationResponse
 
 
 type SignupResponse
-    = SignupSuccessResponse
+    = SignupSuccessResponse { email : String, emailVerified : Bool }
       -- TODO: Handle errors
     | SignupErrorResponse
 
@@ -54,6 +54,7 @@ type alias SignupRequestData =
     , lastName : String
     , email : String
     , password : String
+    , invitationCode : Maybe String
     }
 
 
@@ -94,7 +95,6 @@ signupRequest serverUrl data =
         }
 
 
-
 authRequestEncode : String -> String -> Encode.Value
 authRequestEncode email password =
     let
@@ -108,15 +108,18 @@ authRequestEncode email password =
 
 signupRequestEncode : SignupRequestData -> Encode.Value
 signupRequestEncode data =
-    let
-        attributes =
-            [ ( "firstName", Encode.string data.firstName )
-            , ( "lastName", Encode.string data.lastName )
-            , ( "email", Encode.string data.email )
-            , ( "password", Encode.string data.password )
-            ]
-    in
-    Encode.object attributes
+    Encode.object <|
+        [ ( "firstName", Encode.string data.firstName )
+        , ( "lastName", Encode.string data.lastName )
+        , ( "password", Encode.string data.password )
+        ]
+            ++ (case data.invitationCode of
+                    Nothing ->
+                        [ ( "email", Encode.string data.email ) ]
+
+                    Just code ->
+                        [ ( "invitationCode", Encode.string code ) ]
+               )
 
 
 authResponseErrorDecoder : Decode.Decoder AuthenticationResponse
@@ -168,9 +171,19 @@ decodeSignupResponse res =
         Err _ ->
             SignupErrorResponse
 
+
 signupResponseSuccessDecoder : Decode.Decoder SignupResponse
 signupResponseSuccessDecoder =
-    DecodePipeline.decode SignupSuccessResponse
+    DecodePipeline.decode
+        (\email emailVerified ->
+            SignupSuccessResponse
+                { email = email
+                , emailVerified = emailVerified
+                }
+        )
+        |> DecodePipeline.required "email" Decode.string
+        |> DecodePipeline.required "emailVerified" Decode.bool
+
 
 toAuthentication : String -> AuthenticationSuccessResponseContent -> Time.Time -> Authentication
 toAuthentication serverUrl authRes time =

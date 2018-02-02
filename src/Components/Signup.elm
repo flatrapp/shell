@@ -7,32 +7,46 @@ import Globals.Types
 import Helpers.Authentication exposing (..)
 import Helpers.Operators exposing ((!:), (!>))
 import Html exposing (Html, div, h1, text)
-import Html.Attributes exposing (for, href, style)
+import Html.Attributes exposing (for, href, id, style)
 import Html.Events exposing (onSubmit)
 import Http
+import Navigation
 import Task
 
 
+type SignupState
+    = SignupForm
+    | SignupPending
+    | SignupSuccessEmail
+    | SignupSuccessNoEmail
+
+
 type alias Model =
-    { email : String
+    { state : SignupState
+    , email : String
     , firstName : String
     , lastName : String
     , password : String
     , passwordRepeat : String
+    , invitationCode : Maybe String
+    , serverInputDefault : String
     , serverInput : String
     , serverUrl : String
     }
 
 
-initialModel : Model
-initialModel =
-    { email = ""
+initialModel : String -> Model
+initialModel serverInput =
+    { state = SignupForm
+    , email = ""
     , firstName = ""
     , lastName = ""
     , password = ""
     , passwordRepeat = ""
-    , serverInput = ""
-    , serverUrl = "http://localhost:8080"
+    , invitationCode = Nothing
+    , serverInputDefault = serverInput -- Gets passed in by JavaScript (GET Param)
+    , serverInput = serverInput
+    , serverUrl = serverInput
     }
 
 
@@ -63,7 +77,7 @@ update msg model globals =
         ViewState state ->
             case state of
                 False ->
-                    initialModel !: []
+                    initialModel model.serverInputDefault !: []
 
                 True ->
                     model !: []
@@ -91,52 +105,94 @@ update msg model globals =
                             , lastName = model.lastName
                             , email = model.email
                             , password = model.password
+                            , invitationCode = model.invitationCode
                             }
                    ]
 
         SignupResponse res ->
             case decodeSignupResponse res of
-                SignupSuccessResponse ->
-                    model !> ([], [ send <| Globals.Types.Alert "signup success"])
+                SignupSuccessResponse { email, emailVerified } ->
+                    { model
+                        | state =
+                            case emailVerified of
+                                True ->
+                                    SignupSuccessNoEmail
+
+                                False ->
+                                    SignupSuccessEmail
+                    }
+                        !> ( [], [ send <| Globals.Types.Alert "Signup successful! Please confirm your email prior to login." ] )
+
                 SignupErrorResponse ->
-                    model !> ([], [ send <| Globals.Types.Alert "signup error"])
+                    model !> ( [], [ send <| Globals.Types.Alert "signup error" ] )
 
 
 view : Model -> Globals.Types.Model -> Html Msg
 view model globals =
+    case model.state of
+        SignupForm ->
+            signupFormView model globals True
+
+        SignupPending ->
+            signupFormView model globals False
+
+        _ ->
+            signupFormView model globals False
+
+
+signupFormView : Model -> Globals.Types.Model -> Bool -> Html Msg
+signupFormView model globals formEnable =
+    let
+        dInput =
+            Input.disabled <| not formEnable
+        dButton =
+            Button.disabled <| not formEnable
+    in
     div []
-        [ h1 [ style [ ( "margin-bottom", "1.2em" ) ] ] [ text "Sign up for a new flatr account" ]
-        , Form.form [ onSubmit RequestSignup ]
-            [ Form.group []
-                [ Form.label [ for "firstName" ] [ text "First name:" ]
-                , Input.text [ Input.id "firstName", onInput FirstNameChange ]
-                ]
-            , Form.group []
-                [ Form.label [ for "lastName" ] [ text "Last name:" ]
-                , Input.text [ Input.id "lastName", onInput LastNameChange ]
-                ]
-            , Form.group []
-                [ Form.label [ for "email" ] [ text "E-Mail:" ]
-                , Input.email [ Input.id "email", onInput EmailChange ]
-                ]
-            , Form.group []
-                [ Form.label [ for "password" ] [ text "Password:" ]
-                , Input.password [ Input.id "password", onInput PasswordChange ]
-                ]
-            , Form.group []
-                [ Form.label [ for "passwordRepeat" ] [ text "Repeat password:" ]
-                , Input.password [ Input.id "passwordRepeat", onInput PasswordRepeatChange ]
-                ]
-            , Form.group []
-                [ Form.help []
-                    [ text "Your password will never be stored in plaintext. "
-                    , text "Please make sure that this website is visited "
-                    , text "over a secure HTTPS connection!"
-                    ]
-                ]
-            , div [ style [ ( "float", "clear" ) ] ]
-                [ div [ style [ ( "float", "left" ) ] ] [ Button.button [ Button.primary ] [ text "Sign up" ] ]
-                , div [ style [ ( "float", "right" ) ] ] [ Button.linkButton [ Button.secondary, Button.attrs [ href "#login" ] ] [ text "Login with an existing account" ] ]
-                ]
+        [ h1 [ style [ ( "margin-bottom", "1.2em" ) ] ]
+            [ if model.invitationCode == Nothing then
+                text "Sign up for a new flatr account"
+              else
+                text "Sign up via invitation link"
             ]
+        , Form.form [ id "signup-form", onSubmit RequestSignup ]
+            ([ Form.group []
+                [ Form.label [ for "firstName" ] [ text "First name:" ]
+                , Input.text [ dInput, Input.id "firstName", onInput FirstNameChange ]
+                ]
+             , Form.group []
+                [ Form.label [ for "lastName" ] [ text "Last name:" ]
+                , Input.text [ dInput, Input.id "lastName", onInput LastNameChange ]
+                ]
+             ]
+                ++ (if model.invitationCode == Nothing then
+                        [ Form.group []
+                            [ Form.label [ for "email" ] [ text "E-Mail:" ]
+                            , Input.email [ dInput, Input.id "email", onInput EmailChange ]
+                            ]
+                        ]
+                    else
+                        []
+                   )
+                ++ [ Form.group []
+                        [ Form.label [ for "password" ] [ text "Password:" ]
+                        , Input.password [ dInput, Input.id "password", onInput PasswordChange ]
+                        ]
+                   , Form.group []
+                        [ Form.label [ for "passwordRepeat" ] [ text "Repeat password:" ]
+                        , Input.password [ dInput, Input.id "passwordRepeat", onInput PasswordRepeatChange ]
+                        ]
+                   , Form.group []
+                        [ Form.help []
+                            [ text "Your password will never be stored in plaintext. "
+                            , text "Please make sure that this website is visited "
+                            , text "over a secure HTTPS connection!"
+                            ]
+                        ]
+                   , div [ style [ ( "float", "clear" ) ] ]
+                        [ div [ style [ ( "float", "left" ) ] ] [ Button.button [ dButton, Button.primary ] [ text "Sign up" ] ]
+                        , div [ style [ ( "float", "right" ) ] ] [ Button.linkButton [ dButton, Button.secondary, Button.attrs [ href "#login" ] ] [ text "Login with an existing account" ] ]
+                        ]
+                   ]
+            )
         ]

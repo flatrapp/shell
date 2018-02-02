@@ -12,7 +12,7 @@ import Navigation exposing (Location)
 import Pages exposing (Page(..), parseLocation)
 import Task
 import Http
-
+import Helpers.Toast exposing (simpleToast, errorToast)
 
 port clearAuthLocalStorage : () -> Cmd msg
 
@@ -68,7 +68,7 @@ update msg model =
                     model !: [ send <| Globals.Types.SaveServerInfo info ]
 
                 ServerInfoErrorResponse ->
-                    model !: [ send <| Globals.Types.Alert "Error while trying to retrieve the ServerInfo" ] 
+                    model !: [ errorToast "Communication Error" "There was an error while trying to get the server information." ]
 
         RequestServerInfo auth ->
             model !: [ Http.send ServerInfoResponse (serverInfoRequest auth.serverUrl) ]

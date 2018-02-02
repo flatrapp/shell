@@ -28,8 +28,9 @@ main =
 type alias Flags =
     { auth : Maybe Globals.Types.Authentication
     , timezoneOffset : Int
+    , serverInput : String
+    , invitationCode : Maybe String
     }
-
 
 init : Flags -> Location -> ( Model.Model, Cmd Msg.Msg )
 init flags location =
@@ -38,7 +39,7 @@ init flags location =
             Navbar.initialState NavbarEvent
 
         ( model, cmd ) =
-            update Msg.AppInitialized (Model.initialModel location navState flags.timezoneOffset)
+            update Msg.AppInitialized (Model.initialModel location navState flags.timezoneOffset flags.serverInput)
 
         ( newGlobals, authSaveGlobalsCmd, authSaveMainCmd ) =
             case flags.auth of
@@ -58,8 +59,11 @@ init flags location =
             case flags.auth of
                 Nothing -> Cmd.none
                 Just auth -> Cmd.map Globals (send <| Globals.Types.RequestServerInfo auth)
+
+        signupModel = model.signup
+        newSignupModel = { signupModel | invitationCode = flags.invitationCode }
     in
-    { model | globals = newGlobals } ! [ navCmd, cmd, authSaveCmd, timeCmd, reqServerInfoCmd ]
+    { model | globals = newGlobals, signup = newSignupModel } ! [ navCmd, cmd, authSaveCmd, timeCmd, reqServerInfoCmd ]
 
 
 updateWrapper : Msg.Msg -> Model.Model -> ( Model.Model, Cmd Msg.Msg )
