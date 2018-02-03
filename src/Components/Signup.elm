@@ -2,7 +2,7 @@ module Components.Signup exposing (..)
 
 import Bootstrap.Button as Button
 import Bootstrap.Form as Form
-import Bootstrap.Form.Input as Input exposing (onInput)
+import Bootstrap.Form.Input as Input exposing (value, onInput)
 import Globals.Types
 import Helpers.Authentication exposing (..)
 import Helpers.Operators exposing ((!:), (!>))
@@ -53,6 +53,7 @@ initialModel serverInput =
 type Msg
     = AppInitialized
     | ViewState Bool
+    | ServerInputChange String
     | FirstNameChange String
     | LastNameChange String
     | EmailChange String
@@ -82,14 +83,17 @@ update msg model globals =
                 True ->
                     model !: []
 
+        ServerInputChange serverInput ->
+            { model | serverInput = serverInput, serverUrl = serverInput } !: []
+
         FirstNameChange firstName ->
-            { model | firstName = firstName } !> ( [], [] )
+            { model | firstName = firstName } !: []
 
         LastNameChange lastName ->
             { model | lastName = lastName } !: []
 
         EmailChange email ->
-            { model | email = email } !> ( [], [] )
+            { model | email = email } !: []
 
         PasswordChange password ->
             { model | password = password } !: []
@@ -181,6 +185,10 @@ signupFormView model globals formEnable =
             ]
         , Form.form [ id "signup-form", onSubmit RequestSignup ]
             ([ Form.group []
+                [ Form.label [ for "serverInput" ] [ text "Server (There's one per flat):" ]
+                , Input.text [ dInput, Input.id "serverInput", value model.serverInput, onInput ServerInputChange ]
+                ]
+             , Form.group []
                 [ Form.label [ for "firstName" ] [ text "First name:" ]
                 , Input.text [ dInput, Input.id "firstName", onInput FirstNameChange ]
                 ]
