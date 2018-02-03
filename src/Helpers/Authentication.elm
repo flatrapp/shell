@@ -1,6 +1,7 @@
 port module Helpers.Authentication exposing (..)
 
 import Globals.Types exposing (Authentication)
+import Helpers.Functions exposing (..)
 import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as DecodePipeline exposing (decode, required)
@@ -148,20 +149,11 @@ authRequestEncode email password =
 
 authResponseDecode : Result Http.Error AuthenticationResponse -> AuthenticationResponse
 authResponseDecode res =
-    case res of
-        Ok success ->
-            success
-
-        Err (Http.BadStatus errRes) ->
-            case Decode.decodeString authResponseErrorDecoder errRes.body of
-                Err _ ->
-                    AuthenticationInvalidResponse
-
-                Ok authRes ->
-                    authRes
-
-        Err httpError ->
-            AuthenticationHttpError httpError
+    responseDecode
+        authResponseErrorDecoder
+        AuthenticationInvalidResponse
+        AuthenticationHttpError
+        res
 
 
 authResponseSuccessDecoder : Decode.Decoder AuthenticationResponse
@@ -181,7 +173,7 @@ authResponseSuccessDecoder =
 
 authResponseErrorDecoder : Decode.Decoder AuthenticationResponse
 authResponseErrorDecoder =
-    DecodePipeline.decode
+    errorDecoder
         (\code message ->
             let
                 error =
@@ -197,9 +189,6 @@ authResponseErrorDecoder =
             in
             AuthenticationErrorResponse { error = error, message = message }
         )
-        |> DecodePipeline.required "code" Decode.string
-        |> DecodePipeline.required "message" Decode.string
-        |> Decode.field "error"
 
 
 
@@ -260,20 +249,11 @@ signupRequestEncode data =
 
 signupResponseDecode : Result Http.Error SignupResponse -> SignupResponse
 signupResponseDecode res =
-    case res of
-        Ok success ->
-            success
-
-        Err (Http.BadStatus errRes) ->
-            case Decode.decodeString signupResponseErrorDecoder errRes.body of
-                Err _ ->
-                    SignupInvalidResponse
-
-                Ok signupRes ->
-                    signupRes
-
-        Err httpError ->
-            SignupHttpError httpError
+    responseDecode
+        signupResponseErrorDecoder
+        SignupInvalidResponse
+        SignupHttpError
+        res
 
 
 signupResponseSuccessDecoder : Decode.Decoder SignupResponse
@@ -291,7 +271,7 @@ signupResponseSuccessDecoder =
 
 signupResponseErrorDecoder : Decode.Decoder SignupResponse
 signupResponseErrorDecoder =
-    DecodePipeline.decode
+    errorDecoder
         (\code message ->
             let
                 error =
@@ -310,6 +290,3 @@ signupResponseErrorDecoder =
             in
             SignupErrorResponse { error = error, message = message }
         )
-        |> DecodePipeline.required "code" Decode.string
-        |> DecodePipeline.required "message" Decode.string
-        |> Decode.field "error"
