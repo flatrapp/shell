@@ -125,6 +125,13 @@ update msg model globals =
 
                 SignupErrorResponse err ->
                     case err.error of
+                        EmailCollisionError ->
+                            model
+                                !: [ errorToast "User already exists" <|
+                                        "A user with this email already exists."
+                                            ++ "<br />Maybe you want to <a href=\"#login\">login</a> instead?"
+                                   ]
+
                         NotInvitedError ->
                             model
                                 !: [ errorToast "Not invited" <|

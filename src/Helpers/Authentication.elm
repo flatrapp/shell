@@ -223,7 +223,8 @@ type SignupResponse
 
 
 type SignupError
-    = NotInvitedError
+    = EmailCollisionError
+    | NotInvitedError
     | InvitationCodeInvalidError
     | UnknownSignupError String
 
@@ -295,6 +296,9 @@ signupResponseErrorDecoder =
             let
                 error =
                     case code of
+                        "email_exists" ->
+                            EmailCollisionError
+
                         "not_invited" ->
                             NotInvitedError
 
