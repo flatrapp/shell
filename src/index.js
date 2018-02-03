@@ -6,7 +6,6 @@ require('font-awesome/css/font-awesome.css');
 var iziToast = require('izitoast/dist/js/iziToast.min.js');
 require('izitoast/dist/css/iziToast.min.css');
 
-
 // Require index.html so it gets copied to dist
 require('./index.html');
 
@@ -17,10 +16,8 @@ function getUrlParameter(name) {
     return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
 }
 
-
-var Elm = require('./Main.elm');
-var mountNode = document.getElementById('main');
-
+// Check if there is an authentication object stored in localStorage and enforce correct types
+// We don't want out Elm app crashing
 var currentAuthString = localStorage.getItem("auth");
 var currentAuth = null;
 var clearAuth = function () { localStorage.setItem("auth", JSON.stringify(null)); currentAuth = null; };
@@ -44,15 +41,29 @@ if (typeof currentAuth === "object" && currentAuth !== null) {
     clearAuth();
 }
 
-var serverUrl = getUrlParameter("serverUrl");
-if (typeof serverUrl !== "string") serverUrl = "";
+// Try to read the serverInput value from localStorage and overwrite it by ""
+// in case it's invalid
+var serverInput = localStorage.getItem("serverInput");
+if (typeof serverInput !== "string" || serverInput.length < 1) serverInput = "";
 
+// If there is a valid serverUrl passed as a GET parameter, use this one instead
+var serverUrl = getUrlParameter("serverUrl");
+if (typeof serverUrl === "string" && serverUrl.length > 1) serverInput = serverUrl;
+
+// If there is a valid invitationCode passed as a GET paramter, pass it to the application
+// Else, pass null (implemented as Maybe String)
 var invitationCode = getUrlParameter("invitationCode");
 if (typeof invitationCode !== "string" || invitationCode.length < 1) invitationCode = null;
 
+// Get the timezone offset in minutes
+// Needs to be multiplied by -1 to get the standard UTC+${minutes} format
 var timezoneOffset = (new Date).getTimezoneOffset() * -1;
 
-var app = Elm.Main.embed(mountNode, { timezoneOffset: timezoneOffset, auth: currentAuth, serverInput: serverUrl, invitationCode: invitationCode });
+
+// Mount the app
+var Elm = require('./Main.elm');
+var mountNode = document.getElementById('main');
+var app = Elm.Main.embed(mountNode, { timezoneOffset: timezoneOffset, auth: currentAuth, serverInput: serverInput, invitationCode: invitationCode });
 
 app.ports.sendToastObject.subscribe(function (toast) {
     iziToast.show({
@@ -71,4 +82,12 @@ app.ports.saveAuthLocalStorage.subscribe(function (auth) {
 
 app.ports.clearAuthLocalStorage.subscribe(function () {
     clearAuth();
+});
+
+app.ports.saveServerInput.subscribe(function (serverInput) {
+    localStorage.setItem("serverInput", serverInput);
+});
+
+app.ports.clearServerInput.subscribe(function () {
+    localStorage.setItem("");
 });

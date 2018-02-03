@@ -6,6 +6,7 @@ import Bootstrap.Form.Input as Input exposing (onInput, value)
 import Globals.Types
 import Helpers.Authentication exposing (..)
 import Helpers.Operators exposing ((!:), (!>))
+import Helpers.Server exposing (saveServerInput)
 import Helpers.Toast exposing (errorToast)
 import Html exposing (Html, a, div, h1, text)
 import Html.Attributes exposing (for, href, id, style)
@@ -45,6 +46,7 @@ type Msg
     | PasswordChange String
     | ServerInputChange String
     | AuthResponse (Result Http.Error AuthenticationResponse)
+    | SaveServerInput String
     | ViewState Bool
 
 
@@ -92,14 +94,21 @@ update msg model globals =
                 newModel !: [ errorToast "Inputs invalid" "One or more inputs are invalid.<br />Please correct the values and try again." ]
 
         AuthResponse res ->
-            model
-                !> ( []
-                   , [ handleAuthResponse globals
+            let
+                ( cmd, globalsCmd ) =
+                    handleAuthResponse globals
                         model.serverUrl
-                        (\auth -> send <| Globals.Types.RequestServerInfo auth)
+                        (\auth ->
+                            ( send <| SaveServerInput model.serverInput
+                            , send <| Globals.Types.RequestServerInfo auth
+                            )
+                        )
                         res
-                     ]
-                   )
+            in
+            ( model, cmd, globalsCmd )
+
+        SaveServerInput input ->
+            { model | serverInputDefault = input } !: [ saveServerInput input ]
 
         ServerInputChange serverInput ->
             let
@@ -136,23 +145,26 @@ validateInputs model =
 handleAuthResponse :
     Globals.Types.Model
     -> String
-    -> (Globals.Types.Authentication -> Cmd Globals.Types.Msg)
+    -> (Globals.Types.Authentication -> ( Cmd Msg, Cmd Globals.Types.Msg ))
     -> Result Http.Error AuthenticationResponse
-    -> Cmd Globals.Types.Msg
+    -> ( Cmd Msg, Cmd Globals.Types.Msg )
 handleAuthResponse globals serverUrl successCmdFn res =
     case authResponseDecode res of
         AuthenticationSuccessResponse authSuccess ->
             case globals.time of
                 Nothing ->
-                    errorToast "Internal Error" <| "The authentication can't be saved because no TimeTick has been received."
-                        ++ "<br />If you see this error in the wild, it means that I probably fucked up real bad."
+                    ( errorToast "Internal Error" <|
+                        "The authentication can't be saved because no TimeTick has been received."
+                            ++ "<br />If you see this error in the wild, it means that I probably fucked up real bad."
+                    , Cmd.none
+                    )
 
                 Just time ->
                     let
                         auth =
                             toAuthentication serverUrl authSuccess time
 
-                        successCmd =
+                        ( successCmd, successGlobalsCmd ) =
                             successCmdFn auth
 
                         destinationHash =
@@ -163,14 +175,16 @@ handleAuthResponse globals serverUrl successCmdFn res =
                                 x ->
                                     x
                     in
-                    Cmd.batch
+                    ( successCmd
+                    , Cmd.batch
                         [ saveAuthentication auth
-                        , successCmd
+                        , successGlobalsCmd
                         , Navigation.newUrl destinationHash
                         ]
+                    )
 
         AuthenticationErrorResponse authErr ->
-            case authErr.error of
+            ( case authErr.error of
                 BadCredentialsError ->
                     errorToast "Invalid credentials" "Your email or password is wrong. Please check your inputs!"
 
@@ -179,10 +193,12 @@ handleAuthResponse globals serverUrl successCmdFn res =
 
                 UnknownAuthenticationError _ ->
                     errorToast "Unknown error" authErr.message
+            , Cmd.none
+            )
 
         _ ->
             -- TODO: Handle network errors seperately
-            errorToast "Communication Error" "An unknown error occured while communicating with the server."
+            ( errorToast "Communication Error" "An unknown error occured while communicating with the server.", Cmd.none )
 
 
 view : Model -> Globals.Types.Model -> Html Msg
