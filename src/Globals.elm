@@ -2,11 +2,11 @@ port module Globals exposing (..)
 
 import Components.Dashboard as Dashboard
 import Components.Login as Login
-import Globals.Types exposing (Authentication, Model, Msg(..), ServerInfoResponse(..))
+import Globals.Types exposing (Authentication, Model, Msg(..))
 import Helpers.Alert exposing (sendAlert)
 import Helpers.Authentication exposing (getValidAuth, isAuthenticated)
 import Helpers.Operators exposing ((!:), (!>))
-import Helpers.Server exposing (decodeServerInfoResponse, serverInfoRequest)
+import Helpers.Server exposing (ServerInfoResponse(..), serverInfoRequest, serverInfoResponseDecode)
 import Helpers.Toast exposing (errorToast, simpleToast)
 import Http
 import Msg
@@ -83,11 +83,18 @@ update msg model =
             checkRedirectLogin model Cmd.none
 
         ServerInfoResponse res ->
-            case decodeServerInfoResponse res of
+            case serverInfoResponseDecode res of
                 ServerInfoSuccessResponse info ->
                     model !: [ send <| Globals.Types.SaveServerInfo info ]
 
-                ServerInfoErrorResponse ->
+                ServerInfoInvalidResponse ->
+                    { model | serverInfo = Nothing }
+                        !: [ errorToast "Communication Error" <|
+                                "Received an invalid response while trying to get the server information."
+                                    ++ "This most likely means something is wrong with the server or server URL."
+                           ]
+
+                ServerInfoHttpError _ ->
                     { model | serverInfo = Nothing }
                         !: [ errorToast "Communication Error" "There was an error while trying to get the server information." ]
 

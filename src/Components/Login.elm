@@ -6,14 +6,13 @@ import Bootstrap.Form.Input as Input exposing (onInput, value)
 import Globals.Types
 import Helpers.Authentication exposing (..)
 import Helpers.Operators exposing ((!:), (!>))
+import Helpers.Toast exposing (errorToast)
 import Html exposing (Html, a, div, h1, text)
 import Html.Attributes exposing (for, href, id, style)
 import Html.Events exposing (onSubmit)
 import Http
 import Navigation
-import Regex exposing (Regex)
 import Task
-import Helpers.Toast exposing (errorToast)
 
 
 type alias Model =
@@ -138,45 +137,51 @@ handleAuthResponse :
     Globals.Types.Model
     -> String
     -> (Globals.Types.Authentication -> Cmd Globals.Types.Msg)
-    -> Result err AuthenticationResponse
+    -> Result Http.Error AuthenticationResponse
     -> Cmd Globals.Types.Msg
 handleAuthResponse globals serverUrl successCmdFn res =
-    case res of
-        Err err ->
-            send (Globals.Types.Alert "Http.Error")
+    case authResponseDecode res of
+        AuthenticationSuccessResponse authSuccess ->
+            case globals.time of
+                Nothing ->
+                    send (Globals.Types.Alert "No time tick received yet")
 
-        Ok authResponse ->
-            case authResponse of
-                AuthenticationSuccessResponse authSuccess ->
-                    case globals.time of
-                        Nothing ->
-                            send (Globals.Types.Alert "No time tick received yet")
+                Just time ->
+                    let
+                        auth =
+                            toAuthentication serverUrl authSuccess time
 
-                        Just time ->
-                            let
-                                auth =
-                                    toAuthentication serverUrl authSuccess time
+                        successCmd =
+                            successCmdFn auth
 
-                                successCmd =
-                                    successCmdFn auth
+                        destinationHash =
+                            case globals.loginDestLocation.hash of
+                                "" ->
+                                    "#"
 
-                                destinationHash =
-                                    case globals.loginDestLocation.hash of
-                                        "" ->
-                                            "#"
+                                x ->
+                                    x
+                    in
+                    Cmd.batch
+                        [ saveAuthentication auth
+                        , successCmd
+                        , Navigation.newUrl destinationHash
+                        ]
 
-                                        x ->
-                                            x
-                            in
-                            Cmd.batch
-                                [ saveAuthentication auth
-                                , successCmd
-                                , Navigation.newUrl destinationHash
-                                ]
+        AuthenticationErrorResponse authErr ->
+            case authErr.error of
+                BadCredentialsError ->
+                    errorToast "Invalid credentials" "Your email or password is wrong. Please check your inputs!"
 
-                -- saveAuthentication auth
-                AuthenticationErrorResponse authError ->
-                    send (Globals.Types.Alert authError.message)
+                EmailNotVerifiedError ->
+                    errorToast "Email not verified" "You haven't verified your email"
+
+                UnknownAuthenticationError _ ->
+                    errorToast "Unknown error" authErr.message
+
+        _ ->
+            -- TODO: Handle network errors seperately
+            errorToast "Communication Error" "An unknown error occured while communicating with the server."
 
 
 view : Model -> Globals.Types.Model -> Html Msg

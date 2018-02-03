@@ -6,11 +6,11 @@ import Bootstrap.Form.Input as Input exposing (onInput)
 import Globals.Types
 import Helpers.Authentication exposing (..)
 import Helpers.Operators exposing ((!:), (!>))
+import Helpers.Toast exposing (errorToast)
 import Html exposing (Html, div, h1, text)
 import Html.Attributes exposing (for, href, id, style)
 import Html.Events exposing (onSubmit)
 import Http
-import Navigation
 import Task
 
 
@@ -110,7 +110,7 @@ update msg model globals =
                    ]
 
         SignupResponse res ->
-            case decodeSignupResponse res of
+            case signupResponseDecode res of
                 SignupSuccessResponse { email, emailVerified } ->
                     { model
                         | state =
@@ -123,8 +123,24 @@ update msg model globals =
                     }
                         !> ( [], [ send <| Globals.Types.Alert "Signup successful! Please confirm your email prior to login." ] )
 
-                SignupErrorResponse ->
-                    model !> ( [], [ send <| Globals.Types.Alert "signup error" ] )
+                SignupErrorResponse err ->
+                    case err.error of
+                        NotInvitedError ->
+                            model
+                                !: [ errorToast "Not invited" <|
+                                        "No invitation could be found for this email."
+                                            ++ "<br />Please check your spelling or ask a registered user to invite you."
+                                   ]
+
+                        InvitationCodeInvalidError ->
+                            model !: [ errorToast "Invitation Code invalid" err.message ]
+
+                        UnknownSignupError _ ->
+                            model !: [ errorToast "Unknown Error" err.message ]
+
+                _ ->
+                    -- TODO: Account for network errors seperately
+                    model !: [ errorToast "Communication Error" "An error occured while communicating to the server." ]
 
 
 view : Model -> Globals.Types.Model -> Html Msg
@@ -145,6 +161,7 @@ signupFormView model globals formEnable =
     let
         dInput =
             Input.disabled <| not formEnable
+
         dButton =
             Button.disabled <| not formEnable
     in

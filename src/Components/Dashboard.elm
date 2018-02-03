@@ -4,7 +4,8 @@ import Bootstrap.Grid as Grid
 import Globals.Types
 import Guards exposing (..)
 import Helpers.Operators exposing ((!:), (!>))
-import Helpers.User as User exposing (decodeCurrentUserResponse)
+import Helpers.Toast exposing (errorToast)
+import Helpers.User as User exposing (currentUserResponseDecode)
 import Html exposing (Html, br, hr, text)
 import Http
 import Task
@@ -103,17 +104,24 @@ update msg model globals =
                     model !: []
 
         CurrentUserResponse result ->
-            case decodeCurrentUserResponse result of
+            case currentUserResponseDecode result of
                 User.CurrentUserSuccessResponse user ->
                     { model | currentUser = Just user } !: []
 
                 User.CurrentUserErrorResponse { error, message } ->
                     case error of
-                        User.CurrentUserUnknownError ->
-                            model !> ( [], [ send <| Globals.Types.Alert <| "Unknown Error: " ++ message ] )
+                        User.CurrentUserUnauthorizedError ->
+                            model
+                                !> ( [ errorToast "Session Expired" "You have been logged out because the session got invalid." ]
+                                   , [ send <| Globals.Types.Logout ]
+                                   )
+
+                        User.CurrentUserUnknownError err ->
+                            model !: [ errorToast "Unknown Error while retrieving user info" message ]
 
                 _ ->
-                    model !> ( [], [ send <| Globals.Types.Alert <| "Unknown Error, you might want to check your network connection." ] )
+                    -- TODO: Check network errors seperately
+                    model !: [ errorToast "Connection Error" "There was an error while communicating with the server." ]
 
 
 view : Model -> Globals.Types.Model -> ( Html msg, Html msg )

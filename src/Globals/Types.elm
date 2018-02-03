@@ -1,10 +1,12 @@
 module Globals.Types exposing (..)
 
+import Helpers.Server exposing (ServerInfo, ServerInfoResponse)
+import Helpers.Toast
+import Http
 import Navigation exposing (Location)
 import Pages
 import Time
-import Http
-import Helpers.Toast
+
 
 type Msg
     = AppInitialized
@@ -18,21 +20,12 @@ type Msg
     | ServerInfoResponse (Result Http.Error ServerInfoResponse)
     | Logout
 
-type ServerInfoResponse
-    = ServerInfoSuccessResponse ServerInfo
-    | ServerInfoErrorResponse
 
 type alias Authentication =
     { serverUrl : String
     , token : String
     , tokenId : String
     , validUntil : Float
-    }
-
-
-type alias ServerInfo =
-    { version : String
-    , name : String
     }
 
 
