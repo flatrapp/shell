@@ -121,7 +121,7 @@ update msg model globals =
                                 False ->
                                     SignupSuccessEmail
                     }
-                        !> ( [], [ send <| Globals.Types.Alert "Signup successful! Please confirm your email prior to login." ] )
+                        !: []
 
                 SignupErrorResponse err ->
                     case err.error of

@@ -12,7 +12,6 @@ type Msg
     = AppInitialized
     | TimeTick Time.Time
     | LocationChange Navigation.Location
-    | Alert String
     | SaveAuthentication Authentication
     | SaveServerInfo ServerInfo
     | CheckRedirectLogin

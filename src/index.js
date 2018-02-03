@@ -54,17 +54,6 @@ var timezoneOffset = (new Date).getTimezoneOffset() * -1;
 
 var app = Elm.Main.embed(mountNode, { timezoneOffset: timezoneOffset, auth: currentAuth, serverInput: serverUrl, invitationCode: invitationCode });
 
-app.ports.sendAlert.subscribe(function (msg) {
-    iziToast.show({
-        title: 'Alert!',
-        message: msg,
-        color: 'red',
-        position: 'topRight',
-        animateInside: false,
-        balloon: true
-    });
-});
-
 app.ports.sendToastObject.subscribe(function (toast) {
     iziToast.show({
         title: toast.title,

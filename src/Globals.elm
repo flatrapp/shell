@@ -3,7 +3,6 @@ port module Globals exposing (..)
 import Components.Dashboard as Dashboard
 import Components.Login as Login
 import Globals.Types exposing (Authentication, Model, Msg(..))
-import Helpers.Alert exposing (sendAlert)
 import Helpers.Authentication exposing (getValidAuth, isAuthenticated)
 import Helpers.Operators exposing ((!:), (!>))
 import Helpers.Server exposing (ServerInfoResponse(..), serverInfoRequest, serverInfoResponseDecode)
@@ -70,9 +69,6 @@ update msg model =
             in
             redirectModel !> ( [ cmd ], mainCmd :: viewStateCmds )
 
-        Alert msg ->
-            model !: [ sendAlert msg ]
-
         SaveAuthentication auth ->
             { model | auth = Just auth } !: []
 
@@ -102,7 +98,7 @@ update msg model =
             model !: [ Http.send ServerInfoResponse (serverInfoRequest auth.serverUrl) ]
 
         Logout ->
-            { model | auth = Nothing } !: [ clearAuthLocalStorage () ]
+            checkRedirectLogin { model | auth = Nothing } (clearAuthLocalStorage ())
 
 
 checkRedirectLogin : Model -> Cmd Msg -> ( Model, Cmd Msg, Cmd Msg.Msg )

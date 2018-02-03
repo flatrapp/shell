@@ -144,7 +144,8 @@ handleAuthResponse globals serverUrl successCmdFn res =
         AuthenticationSuccessResponse authSuccess ->
             case globals.time of
                 Nothing ->
-                    send (Globals.Types.Alert "No time tick received yet")
+                    errorToast "Internal Error" <| "The authentication can't be saved because no TimeTick has been received."
+                        ++ "<br />If you see this error in the wild, it means that I probably fucked up real bad."
 
                 Just time ->
                     let
