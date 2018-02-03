@@ -17,7 +17,8 @@ import Task
 
 
 type alias Model =
-    { email : String
+    { state : State
+    , email : String
     , password : String
     , serverInputDefault : String
     , serverInput : String
@@ -29,7 +30,8 @@ type alias Model =
 
 initialModel : String -> Model
 initialModel serverInput =
-    { email = ""
+    { state = LoginForm
+    , email = ""
     , password = ""
     , serverInputDefault = serverInput
     , serverInput = serverInput
@@ -37,6 +39,11 @@ initialModel serverInput =
     , inputsValid = False
     , inputsValidMsg = ""
     }
+
+
+type State
+    = LoginForm
+    | LoginPending
 
 
 type Msg
@@ -89,7 +96,8 @@ update msg model globals =
                     }
             in
             if inputsValid then
-                newModel !: [ Http.send AuthResponse (authRequest newModel.serverUrl newModel.email newModel.password) ]
+                { newModel | state = LoginPending }
+                    !: [ Http.send AuthResponse (authRequest newModel.serverUrl newModel.email newModel.password) ]
             else
                 newModel !: [ errorToast "Inputs invalid" "One or more inputs are invalid.<br />Please correct the values and try again." ]
 
@@ -105,7 +113,7 @@ update msg model globals =
                         )
                         res
             in
-            ( model, cmd, globalsCmd )
+            ( { model | state = LoginForm }, cmd, globalsCmd )
 
         SaveServerInput input ->
             { model | serverInputDefault = input } !: [ saveServerInput input ]
@@ -203,20 +211,35 @@ handleAuthResponse globals serverUrl successCmdFn res =
 
 view : Model -> Globals.Types.Model -> Html Msg
 view model globals =
+    let
+        formEnable =
+            case model.state of
+                LoginForm ->
+                    True
+
+                LoginPending ->
+                    False
+
+        dInput =
+            Input.disabled <| not formEnable
+
+        dButton =
+            Button.disabled <| not formEnable
+    in
     div []
         [ h1 [ style [ ( "margin-bottom", "1.2em" ) ] ] [ text "Login" ]
         , Form.form [ id "login-form", onSubmit RequestAuthentication ]
             [ Form.group []
-                [ Form.label [ for "server" ] [ text "Server: (There's one server per flat)" ]
-                , Input.text [ Input.id "server", onInput ServerInputChange, value model.serverInput ]
+                [ Form.label [ for "server" ] [ text "Server (There's one per flat):" ]
+                , Input.text [ dInput, Input.id "server", onInput ServerInputChange, value model.serverInput ]
                 ]
             , Form.group []
                 [ Form.label [ for "email" ] [ text "E-Mail:" ]
-                , Input.email [ Input.id "email", onInput EmailChange, value model.email ]
+                , Input.email [ dInput, Input.id "email", onInput EmailChange, value model.email ]
                 ]
             , Form.group []
                 [ Form.label [ for "password" ] [ text "Password:" ]
-                , Input.password [ Input.id "password", onInput PasswordChange, value model.password ]
+                , Input.password [ dInput, Input.id "password", onInput PasswordChange, value model.password ]
                 ]
             , Form.group []
                 [ Form.help []
@@ -226,8 +249,8 @@ view model globals =
                     ]
                 ]
             , div [ style [ ( "float", "clear" ) ] ]
-                [ div [ style [ ( "float", "left" ) ] ] [ Button.button [ Button.primary ] [ text "Login" ] ]
-                , div [ style [ ( "float", "right" ) ] ] [ Button.linkButton [ Button.secondary, Button.attrs [ href "#signup" ] ] [ text "Signup for a new account" ] ]
+                [ div [ style [ ( "float", "left" ) ] ] [ Button.button [ dButton, Button.primary ] [ text "Login" ] ]
+                , div [ style [ ( "float", "right" ) ] ] [ Button.linkButton [ dButton, Button.secondary, Button.attrs [ href "#signup" ] ] [ text "Signup for a new account" ] ]
                 ]
             ]
         ]
