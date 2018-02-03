@@ -13,6 +13,7 @@ import Http
 import Navigation
 import Regex exposing (Regex)
 import Task
+import Helpers.Toast exposing (errorToast)
 
 
 type alias Model =
@@ -56,8 +57,6 @@ send msg =
 
 update : Msg -> Model -> Globals.Types.Model -> ( Model, Cmd Msg, Cmd Globals.Types.Msg )
 update msg model globals =
-    let _ = Debug.log "LOGIN MODEL" model
-    in
     case msg of
         AppInitialized ->
             model !: []
@@ -77,7 +76,21 @@ update msg model globals =
             { model | password = password } !: []
 
         RequestAuthentication ->
-            model !: [ Http.send AuthResponse (authRequest model.serverUrl model.email model.password) ]
+            let
+                ( inputsValid, inputsValidMsg, serverUrl ) =
+                    validateInputs model
+
+                newModel =
+                    { model
+                        | serverUrl = serverUrl
+                        , inputsValid = inputsValid
+                        , inputsValidMsg = inputsValidMsg
+                    }
+            in
+            if inputsValid then
+                newModel !: [ Http.send AuthResponse (authRequest newModel.serverUrl newModel.email newModel.password) ]
+            else
+                newModel !: [ errorToast "Inputs invalid" "One or more inputs are invalid.<br />Please correct the values and try again." ]
 
         AuthResponse res ->
             model
