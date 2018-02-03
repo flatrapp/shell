@@ -44,6 +44,7 @@ type alias Model =
     , timezoneOffset : Int
     , auth : Maybe Authentication
     , serverInfo : Maybe ServerInfo
+    , lastServerInfoUpdate : Float
     , version : String
     }
 
@@ -57,5 +58,6 @@ initialModel location timezoneOffset =
     , timezoneOffset = timezoneOffset
     , auth = Nothing
     , serverInfo = Nothing
+    , lastServerInfoUpdate = 0
     , version = "0.0.1"
     }

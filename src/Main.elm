@@ -32,6 +32,7 @@ type alias Flags =
     , invitationCode : Maybe String
     }
 
+
 init : Flags -> Location -> ( Model.Model, Cmd Msg.Msg )
 init flags location =
     let
@@ -55,15 +56,13 @@ init flags location =
         timeCmd =
             Task.perform Msg.TimeTick Time.now
 
-        reqServerInfoCmd =
-            case flags.auth of
-                Nothing -> Cmd.none
-                Just auth -> Cmd.map Globals (send <| Globals.Types.RequestServerInfo auth)
+        signupModel =
+            model.signup
 
-        signupModel = model.signup
-        newSignupModel = { signupModel | invitationCode = flags.invitationCode }
+        newSignupModel =
+            { signupModel | invitationCode = flags.invitationCode }
     in
-    { model | globals = newGlobals, signup = newSignupModel } ! [ navCmd, cmd, authSaveCmd, timeCmd, reqServerInfoCmd ]
+    { model | globals = newGlobals, signup = newSignupModel } ! [ navCmd, cmd, authSaveCmd, timeCmd ]
 
 
 updateWrapper : Msg.Msg -> Model.Model -> ( Model.Model, Cmd Msg.Msg )

@@ -222,3 +222,21 @@ isAuthenticated globals =
 
         Nothing ->
             False
+
+
+getValidAuth : Globals.Types.Model -> Maybe Authentication
+getValidAuth globals =
+    case globals.auth of
+        Just auth ->
+            case globals.time of
+                Just time ->
+                    if auth.validUntil >= time then
+                        Just auth
+                    else
+                        Nothing
+
+                Nothing ->
+                    Just auth
+
+        Nothing ->
+            Nothing

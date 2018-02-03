@@ -4,17 +4,24 @@ import Components.Dashboard as Dashboard
 import Components.Login as Login
 import Globals.Types exposing (Authentication, Model, Msg(..), ServerInfoResponse(..))
 import Helpers.Alert exposing (sendAlert)
-import Helpers.Authentication exposing (isAuthenticated)
+import Helpers.Authentication exposing (getValidAuth, isAuthenticated)
 import Helpers.Operators exposing ((!:), (!>))
-import Helpers.Server exposing (serverInfoRequest, decodeServerInfoResponse)
+import Helpers.Server exposing (decodeServerInfoResponse, serverInfoRequest)
+import Helpers.Toast exposing (errorToast, simpleToast)
+import Http
 import Msg
 import Navigation exposing (Location)
 import Pages exposing (Page(..), parseLocation)
 import Task
-import Http
-import Helpers.Toast exposing (simpleToast, errorToast)
+import Time
+
 
 port clearAuthLocalStorage : () -> Cmd msg
+
+
+serverInfoUpdateInterval : Float
+serverInfoUpdateInterval =
+    60 * Time.second
 
 
 send : msg -> Cmd msg
@@ -33,7 +40,19 @@ update msg model =
             update (LocationChange model.location) model
 
         TimeTick newTime ->
-            { model | time = Just newTime } !: []
+            let
+                newModel =
+                    { model | time = Just newTime }
+            in
+            case getValidAuth model of
+                Nothing ->
+                    newModel !: []
+
+                Just auth ->
+                    if model.lastServerInfoUpdate + serverInfoUpdateInterval < newTime then
+                        update (RequestServerInfo auth) { newModel | lastServerInfoUpdate = newTime }
+                    else
+                        newModel !: []
 
         LocationChange location ->
             let
@@ -62,13 +81,15 @@ update msg model =
 
         CheckRedirectLogin ->
             checkRedirectLogin model Cmd.none
+
         ServerInfoResponse res ->
             case decodeServerInfoResponse res of
                 ServerInfoSuccessResponse info ->
                     model !: [ send <| Globals.Types.SaveServerInfo info ]
 
                 ServerInfoErrorResponse ->
-                    model !: [ errorToast "Communication Error" "There was an error while trying to get the server information." ]
+                    { model | serverInfo = Nothing }
+                        !: [ errorToast "Communication Error" "There was an error while trying to get the server information." ]
 
         RequestServerInfo auth ->
             model !: [ Http.send ServerInfoResponse (serverInfoRequest auth.serverUrl) ]

@@ -6,11 +6,12 @@ import Bootstrap.Form.Input as Input exposing (onInput, value)
 import Globals.Types
 import Helpers.Authentication exposing (..)
 import Helpers.Operators exposing ((!:), (!>))
-import Html exposing (Html, div, h1, text, a)
-import Html.Attributes exposing (for, style, href, id)
+import Html exposing (Html, a, div, h1, text)
+import Html.Attributes exposing (for, href, id, style)
 import Html.Events exposing (onSubmit)
 import Http
 import Navigation
+import Regex exposing (Regex)
 import Task
 
 
@@ -20,6 +21,8 @@ type alias Model =
     , serverInputDefault : String
     , serverInput : String
     , serverUrl : String
+    , inputsValid : Bool
+    , inputsValidMsg : String
     }
 
 
@@ -29,7 +32,9 @@ initialModel serverInput =
     , password = ""
     , serverInputDefault = serverInput
     , serverInput = serverInput
-    , serverUrl = serverInput
+    , serverUrl = ""
+    , inputsValid = False
+    , inputsValidMsg = ""
     }
 
 
@@ -38,6 +43,7 @@ type Msg
     | RequestAuthentication
     | EmailChange String
     | PasswordChange String
+    | ServerInputChange String
     | AuthResponse (Result Http.Error AuthenticationResponse)
     | ViewState Bool
 
@@ -50,6 +56,8 @@ send msg =
 
 update : Msg -> Model -> Globals.Types.Model -> ( Model, Cmd Msg, Cmd Globals.Types.Msg )
 update msg model globals =
+    let _ = Debug.log "LOGIN MODEL" model
+    in
     case msg of
         AppInitialized ->
             model !: []
@@ -80,6 +88,37 @@ update msg model globals =
                         res
                      ]
                    )
+
+        ServerInputChange serverInput ->
+            let
+                ( inputsValid, inputsValidMsg, serverUrl ) =
+                    validateInputs { model | serverInput = serverInput }
+            in
+            { model
+                | serverInput = serverInput
+                , serverUrl = serverUrl
+                , inputsValid = inputsValid
+                , inputsValidMsg = inputsValidMsg
+            }
+                !: []
+
+
+serverInputToUrl : String -> Maybe String
+serverInputToUrl input =
+    if String.length input < 1 then
+        Nothing
+    else
+        Just input
+
+
+validateInputs : Model -> ( Bool, String, String )
+validateInputs model =
+    case serverInputToUrl model.serverInput of
+        Nothing ->
+            ( False, "Server input invalid", "" )
+
+        Just serverUrl ->
+            ( True, "", serverUrl )
 
 
 handleAuthResponse :
@@ -133,6 +172,10 @@ view model globals =
         [ h1 [ style [ ( "margin-bottom", "1.2em" ) ] ] [ text "Login" ]
         , Form.form [ id "login-form", onSubmit RequestAuthentication ]
             [ Form.group []
+                [ Form.label [ for "server" ] [ text "Server: (There's one server per flat)" ]
+                , Input.text [ Input.id "server", onInput ServerInputChange, value model.serverInput ]
+                ]
+            , Form.group []
                 [ Form.label [ for "email" ] [ text "E-Mail:" ]
                 , Input.email [ Input.id "email", onInput EmailChange, value model.email ]
                 ]
@@ -149,7 +192,7 @@ view model globals =
                 ]
             , div [ style [ ( "float", "clear" ) ] ]
                 [ div [ style [ ( "float", "left" ) ] ] [ Button.button [ Button.primary ] [ text "Login" ] ]
-                , div [ style [ ( "float", "right" ) ] ] [ Button.linkButton [ Button.secondary, Button.attrs [ href "#signup"] ] [ text "Signup for a new account" ] ]
+                , div [ style [ ( "float", "right" ) ] ] [ Button.linkButton [ Button.secondary, Button.attrs [ href "#signup" ] ] [ text "Signup for a new account" ] ]
                 ]
             ]
         ]
