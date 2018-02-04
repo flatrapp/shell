@@ -3,9 +3,9 @@ node_js:
     - "node"
 
 install:
-    - "npm install -g elm"
-    - "npm install"
-    - "elm package install"
+    - "npm install -g elm yarn"
+    - "yarn"
+    - "elm package install -y"
     
 script:
-    - "elm-make"
+    - "./node_modules/webpack/bin/webpack.js"
