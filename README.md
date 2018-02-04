@@ -1,4 +1,4 @@
-# `flatrapp/shell`
+# `flatrapp/shell` - ![TravisCI Build Status](https://travis-ci.org/flatrapp/shell.svg?branch=master)
 flatr is a software providing management tools for living communities.
 
 This project is a web-frontend speaking the flatr-API written in [Elm](https://elm-lang.org).
