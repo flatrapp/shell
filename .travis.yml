@@ -23,3 +23,15 @@ install:
     
 script:
   - "$TRAVIS_BUILD_DIR/sysconfcpus/bin/sysconfcpus -n 1 ./node_modules/webpack/bin/webpack.js"
+
+deploy:
+  provider: pages
+  repo: "flatrapp/app"
+  local-dir: "./dist"
+  skip-cleanup: true
+  github-token: $GHPAGES_ACCESS_TOKEN  # Set in travis-ci.org dashboard, marked secure
+  keep-history: true
+  email: flatrbot@is.currently.online
+  name: flatrbot
+  on:
+    branch: master
