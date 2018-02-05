@@ -1,7 +1,9 @@
 module Helpers.User exposing (..)
 
+import Dict exposing (Dict)
 import Globals.Types exposing (Authentication)
 import Helpers.Authentication exposing (authenticationHeaders)
+import Helpers.Functions exposing (..)
 import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as DecodePipeline exposing (decode, required)
@@ -25,6 +27,26 @@ type alias UserInfo =
     }
 
 
+userInfoDecoder : Decode.Decoder UserInfo
+userInfoDecoder =
+    DecodePipeline.decode
+        (\id email firstName lastName ->
+            { id = id
+            , email = email
+            , firstName = firstName
+            , lastName = lastName
+            }
+        )
+        |> DecodePipeline.required "id" Decode.int
+        |> DecodePipeline.required "email" Decode.string
+        |> DecodePipeline.required "firstName" Decode.string
+        |> DecodePipeline.required "lastName" Decode.string
+
+
+
+-- ////////// GET CURRENT USER //////////
+
+
 type CurrentUserResponse
     = CurrentUserSuccessResponse UserInfo
     | CurrentUserErrorResponse { error : CurrentUserError, message : String }
@@ -41,7 +63,9 @@ currentUserRequest : Authentication -> Http.Request CurrentUserResponse
 currentUserRequest auth =
     Http.request
         { body = Http.emptyBody
-        , expect = Http.expectJson currentUserSuccessDecoder
+        , expect =
+            Http.expectJson <|
+                Decode.map (\u -> CurrentUserSuccessResponse u) userInfoDecoder
         , headers = authenticationHeaders auth
         , method = "GET"
         , timeout = Just requestTimeout
@@ -50,26 +74,9 @@ currentUserRequest auth =
         }
 
 
-currentUserSuccessDecoder : Decode.Decoder CurrentUserResponse
-currentUserSuccessDecoder =
-    DecodePipeline.decode
-        (\id email firstName lastName ->
-            CurrentUserSuccessResponse
-                { id = id
-                , email = email
-                , firstName = firstName
-                , lastName = lastName
-                }
-        )
-        |> DecodePipeline.required "id" Decode.int
-        |> DecodePipeline.required "email" Decode.string
-        |> DecodePipeline.required "firstName" Decode.string
-        |> DecodePipeline.required "lastName" Decode.string
-
-
 currentUserErrorDecoder : Decode.Decoder CurrentUserResponse
 currentUserErrorDecoder =
-    DecodePipeline.decode
+    errorDecoder
         (\code message ->
             CurrentUserErrorResponse
                 { error =
@@ -82,27 +89,80 @@ currentUserErrorDecoder =
                 , message = message
                 }
         )
-        |> DecodePipeline.required "code" Decode.string
-        |> DecodePipeline.required "message" Decode.string
-        |> Decode.field "error"
 
 
 currentUserResponseDecode : Result Http.Error CurrentUserResponse -> CurrentUserResponse
 currentUserResponseDecode res =
-    case res of
-        Ok success ->
-            success
+    responseDecode
+        currentUserErrorDecoder
+        CurrentUserInvalidResponse
+        CurrentUserHttpError
+        res
 
-        Err (Http.BadStatus response) ->
-            case Decode.decodeString currentUserErrorDecoder response.body of
-                Err decodeError ->
-                    CurrentUserInvalidResponse
 
-                Ok parsedResponse ->
-                    parsedResponse
 
-        Err (Http.BadPayload _ _) ->
-            CurrentUserInvalidResponse
+-- ////////// GET ALL USERS //////////
 
-        Err httpErr ->
-            CurrentUserHttpError httpErr
+
+type ListUsersResponse
+    = ListUsersSuccessResponse (Dict Int UserInfo)
+    | ListUsersErrorResponse { error : ListUsersError, message : String }
+    | ListUsersInvalidResponse
+    | ListUsersHttpError Http.Error
+
+
+type ListUsersError
+    = ListUsersUnauthorizedError
+    | ListUsersUnknownError String
+
+
+listUsersRequest : Authentication -> Http.Request ListUsersResponse
+listUsersRequest auth =
+    Http.request
+        { body = Http.emptyBody
+        , expect =
+            Http.expectJson <|
+                Decode.map
+                    (\users ->
+                        ListUsersSuccessResponse <|
+                            List.foldl
+                                (\user dict ->
+                                    Dict.insert user.id user dict
+                                )
+                                Dict.empty
+                                users
+                    )
+                <|
+                    Decode.list userInfoDecoder
+        , headers = authenticationHeaders auth
+        , method = "GET"
+        , timeout = Just requestTimeout
+        , url = auth.serverUrl ++ "/users"
+        , withCredentials = False
+        }
+
+
+listUsersErrorDecoder : Decode.Decoder ListUsersResponse
+listUsersErrorDecoder =
+    errorDecoder
+        (\code message ->
+            ListUsersErrorResponse
+                { error =
+                    case code of
+                        "unauthorized" ->
+                            ListUsersUnauthorizedError
+
+                        errorCode ->
+                            ListUsersUnknownError errorCode
+                , message = message
+                }
+        )
+
+
+listUsersResponseDecode : Result Http.Error ListUsersResponse -> ListUsersResponse
+listUsersResponseDecode res =
+    responseDecode
+        listUsersErrorDecoder
+        ListUsersInvalidResponse
+        ListUsersHttpError
+        res

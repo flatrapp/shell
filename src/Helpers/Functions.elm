@@ -34,6 +34,57 @@ flexibleResponseDecode successDecoder badStatusDecoder parsingError httpError re
         Err a ->
             httpError a
 
+
 responseDecode : Decode.Decoder a -> a -> (Http.Error -> a) -> Result Http.Error a -> a
 responseDecode =
     flexibleResponseDecode (\a -> a)
+
+
+maybeList : List (Maybe a) -> Maybe (List a)
+maybeList maybeList =
+    List.foldr
+        (\current prev ->
+            case prev of
+                Nothing ->
+                    Nothing
+
+                Just list ->
+                    case current of
+                        Nothing ->
+                            Nothing
+
+                        Just item ->
+                            Just <| item :: list
+        )
+        (Just [])
+        maybeList
+
+
+maybe2 : ( Maybe a, Maybe b ) -> Maybe ( a, b )
+maybe2 maybeTuple =
+    case maybeTuple of
+        ( Just a, Just b ) ->
+            Just ( a, b )
+
+        _ ->
+            Nothing
+
+
+maybe3 : ( Maybe a, Maybe b, Maybe c ) -> Maybe ( a, b, c )
+maybe3 maybeTuple =
+    case maybeTuple of
+        ( Just a, Just b, Just c ) ->
+            Just ( a, b, c )
+
+        _ ->
+            Nothing
+
+
+maybe4 : ( Maybe a, Maybe b, Maybe c, Maybe d ) -> Maybe ( a, b, c, d )
+maybe4 maybeTuple =
+    case maybeTuple of
+        ( Just a, Just b, Just c, Just d ) ->
+            Just ( a, b, c, d )
+
+        _ ->
+            Nothing
