@@ -1,5 +1,6 @@
 port module Helpers.Invitation exposing (..)
 
+import Dict exposing (Dict)
 import Globals.Types exposing (Authentication)
 import Helpers.Authentication exposing (authenticationHeaders)
 import Helpers.Functions exposing (..)
@@ -13,6 +14,7 @@ import Time
 requestTimeout : Float
 requestTimeout =
     5 * Time.second
+
 
 
 -- ////////// GENERIC //////////
@@ -47,8 +49,8 @@ type CreateInvitationError
     = UnknownCreateInvitationError String
 
 
-createInvitationRequest : String -> String -> Authentication -> Http.Request CreateInvitationResponse
-createInvitationRequest serverUrl email auth =
+createInvitationRequest : Authentication -> String -> Http.Request CreateInvitationResponse
+createInvitationRequest auth email =
     Http.request
         { body = createInvitationRequestEncode email |> Http.jsonBody
         , expect =
@@ -57,7 +59,7 @@ createInvitationRequest serverUrl email auth =
         , headers = authenticationHeaders auth
         , method = "POST"
         , timeout = Just requestTimeout
-        , url = serverUrl ++ "/invitations"
+        , url = auth.serverUrl ++ "/invitations"
         , withCredentials = False
         }
 
@@ -97,7 +99,7 @@ createInvitationErrorDecoder =
 
 
 type ListInvitationsResponse
-    = ListInvitationsSuccessResponse (List Invitation)
+    = ListInvitationsSuccessResponse (Dict Int Invitation)
     | ListInvitationsErrorResponse { error : ListInvitationsError, message : String }
     | ListInvitationsInvalidResponse
     | ListInvitationsHttpError Http.Error
@@ -107,15 +109,15 @@ type ListInvitationsError
     = UnknownListInvitationsError String
 
 
-listInvitationsRequest : String -> Authentication -> Http.Request ListInvitationsResponse
-listInvitationsRequest serverUrl auth =
+listInvitationsRequest : Authentication -> Http.Request ListInvitationsResponse
+listInvitationsRequest auth =
     Http.request
         { body = Http.emptyBody
         , expect = Http.expectJson listInvitationsSuccessDecoder
         , headers = authenticationHeaders auth
         , method = "GET"
         , timeout = Just requestTimeout
-        , url = serverUrl ++ "/invitations"
+        , url = auth.serverUrl ++ "/invitations"
         , withCredentials = False
         }
 
@@ -132,7 +134,10 @@ listInvitationsResponseDecode res =
 listInvitationsSuccessDecoder : Decode.Decoder ListInvitationsResponse
 listInvitationsSuccessDecoder =
     Decode.map
-        (\invitations -> ListInvitationsSuccessResponse invitations)
+        (\invitations ->
+            List.foldl (\invitation dict -> Dict.insert invitation.id invitation dict) Dict.empty invitations
+                |> ListInvitationsSuccessResponse
+        )
         (Decode.list invitationDecoder)
 
 
@@ -152,8 +157,9 @@ listInvitationsErrorDecoder =
 
 -- ////////// DELETE INVITATION //////////
 
+
 type DeleteInvitationResponse
-    = DeleteInvitationSuccessResponse
+    = DeleteInvitationSuccessResponse Int
     | DeleteInvitationErrorResponse { error : DeleteInvitationError, message : String }
     | DeleteInvitationInvalidResponse
     | DeleteInvitationHttpError Http.Error
@@ -162,28 +168,28 @@ type DeleteInvitationResponse
 type DeleteInvitationError
     = UnknownDeleteInvitationError String
 
-deleteInvitationRequest : String -> Authentication -> Int -> Http.Request String
-deleteInvitationRequest serverUrl auth invitationId =
+
+deleteInvitationRequest : Authentication -> Int -> Http.Request DeleteInvitationResponse
+deleteInvitationRequest auth invitationId =
     Http.request
         { body = Http.emptyBody
-        , expect = Http.expectString
+        , expect = Http.expectStringResponse (\_ -> Ok <| DeleteInvitationSuccessResponse invitationId)
         , headers = authenticationHeaders auth
         , method = "DELETE"
         , timeout = Just requestTimeout
-        , url = serverUrl ++ "/invitations/" ++ toString invitationId
+        , url = auth.serverUrl ++ "/invitations/" ++ toString invitationId
         , withCredentials = False
         }
 
 
 deleteInvitationResponseDecode : Result Http.Error DeleteInvitationResponse -> DeleteInvitationResponse
 deleteInvitationResponseDecode res =
-    flexibleResponseDecode
-        -- Ignore response string, as long as it's in the 200-300 range
-        (\_ -> DeleteInvitationSuccessResponse)
+    responseDecode
         deleteInvitationErrorDecoder
         DeleteInvitationInvalidResponse
         DeleteInvitationHttpError
         res
+
 
 deleteInvitationErrorDecoder : Decode.Decoder DeleteInvitationResponse
 deleteInvitationErrorDecoder =
@@ -198,7 +204,9 @@ deleteInvitationErrorDecoder =
                 }
 
 
+
 -- ////////// RESEND INVITATION EMAIL //////////
+
 
 type ResendInvitationResponse
     = ResendInvitationSuccessResponse
@@ -210,20 +218,21 @@ type ResendInvitationResponse
 type ResendInvitationError
     = UnknownResendInvitationError String
 
-resendInvitationRequest : String -> Authentication -> Int -> Http.Request String
-resendInvitationRequest serverUrl auth invitationId =
+
+resendInvitationRequest : Authentication -> Int -> Http.Request String
+resendInvitationRequest auth invitationId =
     Http.request
         { body = Http.jsonBody <| Encode.object []
         , expect = Http.expectString
         , headers = authenticationHeaders auth
         , method = "PATCH"
         , timeout = Just requestTimeout
-        , url = serverUrl ++ "/invitations/" ++ toString invitationId
+        , url = auth.serverUrl ++ "/invitations/" ++ toString invitationId
         , withCredentials = False
         }
 
 
-resendInvitationResponseDecode : Result Http.Error ResendInvitationResponse -> ResendInvitationResponse
+resendInvitationResponseDecode : Result Http.Error String -> ResendInvitationResponse
 resendInvitationResponseDecode res =
     flexibleResponseDecode
         -- Ignore response string, as long as it's in the 200-300 range
@@ -232,6 +241,7 @@ resendInvitationResponseDecode res =
         ResendInvitationInvalidResponse
         ResendInvitationHttpError
         res
+
 
 resendInvitationErrorDecoder : Decode.Decoder ResendInvitationResponse
 resendInvitationErrorDecoder =
@@ -244,4 +254,3 @@ resendInvitationErrorDecoder =
                             UnknownResendInvitationError code
                 , message = message
                 }
-

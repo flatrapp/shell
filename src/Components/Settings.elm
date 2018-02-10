@@ -76,7 +76,7 @@ viewStateMsgs subPage =
             ]
 
 
-view : SettingsSubPage -> Model -> Globals.Types.Model -> Html msg
+view : SettingsSubPage -> Model -> Globals.Types.Model -> Html Msg
 view page model globals =
     Grid.container []
         [ Grid.row []
@@ -90,17 +90,17 @@ view page model globals =
         ]
 
 
-viewContent : SettingsSubPage -> Model -> Globals.Types.Model -> Html msg
+viewContent : SettingsSubPage -> Model -> Globals.Types.Model -> Html Msg
 viewContent page model globals =
     case page of
         SettingsMainPage ->
             text "SettingsMainPage"
 
         SettingsTasksPage ->
-            Tasks.view model.tasks globals
+            Html.map Tasks <| Tasks.view model.tasks globals
 
         SettingsUsersPage ->
-            Users.view model.users globals
+            Html.map Users <| Users.view model.users globals
 
 
 viewSidebar : SettingsSubPage -> Html msg
