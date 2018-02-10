@@ -66,9 +66,11 @@ type Msg
     | ShowView
     | HideView
     | UpdateData
+    | FinishTurn Int
     | CurrentUserResponse (Result Http.Error User.CurrentUserResponse)
     | ListUsersResponse (Result Http.Error User.ListUsersResponse)
     | ListTasksResponse (Result Http.Error Task.ListTasksResponse)
+    | FinishTurnResponse (Result Http.Error Task.FinishTurnResponse)
 
 
 send : msg -> Cmd msg
@@ -121,6 +123,28 @@ update msg model globals =
                 Nothing ->
                     model !: []
 
+        FinishTurn id ->
+            case globals.auth of
+                Nothing ->
+                    model !: []
+
+                Just auth ->
+                    model
+                        !: [ Http.send FinishTurnResponse <| finishTurnRequest auth id ]
+
+        FinishTurnResponse res ->
+            case finishTurnResponseDecode res of
+                FinishTurnSuccessResponse ->
+                    case globals.auth of
+                        Just auth ->
+                            model !: [ Http.send ListTasksResponse <| Task.listTasksRequest auth ]
+
+                        Nothing ->
+                            model !: []
+
+                _ ->
+                    model !: []
+
         CurrentUserResponse result ->
             case currentUserResponseDecode result of
                 User.CurrentUserSuccessResponse user ->
@@ -160,7 +184,7 @@ update msg model globals =
                     model !: [ errorToast "Unknown Error" "An unknown error occured while retrieving the list of tasks" ]
 
 
-view : Model -> Globals.Types.Model -> ( Html msg, Html msg )
+view : Model -> Globals.Types.Model -> ( Html Msg, Html msg )
 view model globals =
     case maybe4 ( model.currentUser, model.tasks, model.users, globals.time ) of
         Nothing ->
@@ -180,7 +204,7 @@ loadingScreen =
     Html.h1 [] [ text "Loading..." ]
 
 
-content : Model -> Globals.Types.Model -> List Task.TaskUser -> UserInfo -> Time.Time -> ( Html msg, Html msg )
+content : Model -> Globals.Types.Model -> List Task.TaskUser -> UserInfo -> Time.Time -> ( Html Msg, Html msg )
 content model globals tasks currentUser time =
     ( Grid.container []
         [ Grid.row []
@@ -214,7 +238,7 @@ content model globals tasks currentUser time =
     )
 
 
-renderTasks : Bool -> List Task.TaskUser -> Time -> Int -> List (ListGroup.Item msg)
+renderTasks : Bool -> List Task.TaskUser -> Time -> Int -> List (ListGroup.Item Msg)
 renderTasks displayCurrentTurn tasks time timezoneOffset =
     let
         filteredTasks =
@@ -304,7 +328,7 @@ noUpcomingTasks =
         ]
 
 
-renderCurrentTask : Task.TaskUser -> Task.TurnUser -> Time -> Int -> ( ListGroup.Item msg, Int )
+renderCurrentTask : Task.TaskUser -> Task.TurnUser -> Time -> Int -> ( ListGroup.Item Msg, Int )
 renderCurrentTask task turn time timezoneOffset =
     let
         ( remainingText, remainingTime ) =
@@ -321,7 +345,7 @@ renderCurrentTask task turn time timezoneOffset =
         , div [ class "d-flex w-100 justify-content-between" ]
             [ p [ class "mb-1" ] [ text task.description ]
             , Button.button
-                [ Button.small, Button.success, Button.attrs [ class "ml-1" ] ]
+                [ Button.small, Button.success, Button.attrs [ class "ml-1" ], Button.onClick <| FinishTurn task.id ]
                 [ text "Done" ]
             ]
         ]

@@ -1,6 +1,5 @@
 module Helpers.Task exposing (..)
 
-import Time.DateTime as DateTime exposing (DateTime)
 import Dict exposing (Dict)
 import Globals.Types exposing (Authentication)
 import Helpers.Authentication exposing (authenticationHeaders)
@@ -11,6 +10,7 @@ import Json.Decode as Decode
 import Json.Decode.Pipeline as DecodePipeline exposing (decode, required)
 import Json.Encode as Encode
 import Time
+import Time.DateTime as DateTime exposing (DateTime)
 
 
 requestTimeout : Float
@@ -135,6 +135,7 @@ tasksMapUser : Dict Int UserInfo -> List Task -> Maybe (List TaskUser)
 tasksMapUser users tasks =
     maybeList <| List.map (taskMapUser users) tasks
 
+
 taskMapUser : Dict Int UserInfo -> Task -> Maybe TaskUser
 taskMapUser users task =
     let
@@ -198,7 +199,7 @@ userInfoFromIds userDict userList =
 
 
 
--- ////////// CREATE INVITATION //////////
+-- ////////// CREATE TASK //////////
 
 
 type CreateTaskResponse
@@ -301,6 +302,60 @@ listTasksErrorDecoder =
                             UnknownListTasksError code
                 , message = message
                 }
+
+
+
+-- ////////// FINISH TASK //////////
+
+
+type FinishTurnResponse
+    = FinishTurnSuccessResponse
+    | FinishTurnErrorResponse { error : FinishTurnError, message : String }
+    | FinishTurnInvalidResponse
+    | FinishTurnHttpError Http.Error
+
+
+type FinishTurnError
+    = UnknownFinishTurnError String
+    | TaskNotFoundError
+
+
+finishTurnRequest : Authentication -> Int -> Http.Request FinishTurnResponse
+finishTurnRequest auth taskId =
+    Http.request
+        { body = Http.emptyBody
+        , expect = Http.expectStringResponse (\_ -> Ok FinishTurnSuccessResponse)
+        , headers = authenticationHeaders auth
+        , method = "POST"
+        , timeout = Just requestTimeout
+        , url = auth.serverUrl ++ "/tasks/" ++ toString taskId ++ "/finish"
+        , withCredentials = False
+        }
+
+
+finishTurnErrorDecoder : Decode.Decoder FinishTurnResponse
+finishTurnErrorDecoder =
+    errorDecoder
+        (\code message ->
+            FinishTurnErrorResponse
+                { error =
+                    case code of
+                        "task_not_found" ->
+                            TaskNotFoundError
+
+                        _ ->
+                            UnknownFinishTurnError code
+                , message = message
+                }
+        )
+
+
+finishTurnResponseDecode res =
+    responseDecode
+        finishTurnErrorDecoder
+        FinishTurnInvalidResponse
+        FinishTurnHttpError
+        res
 
 
 
