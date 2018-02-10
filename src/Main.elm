@@ -92,16 +92,10 @@ update msg model =
 
         Msg.TimeTick time ->
             let
-                -- TODO: Remove
-                _ =
-                    Debug.log "Login model" model.login
-
                 ( newModel, msgs ) =
                     ( model, [] )
                         :> update (Msg.Globals (Globals.Types.TimeTick time))
                         :> update (Msg.Dashboard (Components.Dashboard.TimeTick time))
-
-                --:> update (Model.Login Components.Login.AppInitialized)
             in
             newModel ! msgs
 

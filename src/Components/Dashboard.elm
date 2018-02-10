@@ -1,6 +1,7 @@
 module Components.Dashboard exposing (..)
 
 import Bootstrap.Badge as Badge
+import Bootstrap.Button as Button
 import Bootstrap.Card as Card
 import Bootstrap.Grid as Grid
 import Bootstrap.ListGroup as ListGroup
@@ -154,7 +155,7 @@ update msg model globals =
                 Task.ListTasksSuccessResponse tasks ->
                     { model | tasks = Just tasks } !: []
 
-                _ ->
+                err ->
                     -- TODO: Handle errors here
                     model !: [ errorToast "Unknown Error" "An unknown error occured while retrieving the list of tasks" ]
 
@@ -215,27 +216,40 @@ content model globals tasks currentUser time =
 
 renderTasks : Bool -> List Task.TaskUser -> Time -> Int -> List (ListGroup.Item msg)
 renderTasks displayCurrentTurn tasks time timezoneOffset =
-    List.filterMap
-        (\task ->
-            if displayCurrentTurn then
-                case task.currentTurn of
-                    Nothing ->
-                        Nothing
+    let
+        filteredTasks =
+            List.filterMap
+                (\task ->
+                    if displayCurrentTurn then
+                        case task.currentTurn of
+                            Nothing ->
+                                Nothing
 
-                    Just turn ->
-                        Just <| renderCurrentTask task turn time timezoneOffset
-            else
-                case List.head task.upcomingTurns of
-                    Nothing ->
-                        Nothing
+                            Just turn ->
+                                Just <| renderCurrentTask task turn time timezoneOffset
+                    else
+                        case List.head task.upcomingTurns of
+                            Nothing ->
+                                Nothing
 
-                    Just turn ->
-                        Just <| renderUpcomingTask task turn time timezoneOffset
-        )
-        tasks
+                            Just turn ->
+                                Just <| renderUpcomingTask task turn time timezoneOffset
+                )
+                tasks
+
+        sortedTasksHtml =
+            List.sortBy Tuple.second filteredTasks
+                |> List.map Tuple.first
+    in
+    if List.length filteredTasks > 0 then
+        sortedTasksHtml
+    else if displayCurrentTurn then
+        [ noCurrentTasks ]
+    else
+        [ noUpcomingTasks ]
 
 
-taskRemainingTime : DateTime -> Int -> Time -> Int -> String
+taskRemainingTime : DateTime -> Int -> Time -> Int -> ( String, Int )
 taskRemainingTime start completionTime time timezoneOffset =
     let
         end =
@@ -247,47 +261,81 @@ taskRemainingTime start completionTime time timezoneOffset =
         delta =
             DateTime.delta end current
 
+        days =
+            delta.hours // 24
+
+        hours =
+            delta.hours % 24
+
         daysString =
-            if delta.days == 1 then
-                toString delta.days ++ " day "
-            else if delta.days > 1 then
-                toString delta.days ++ " days "
+            if days == 1 then
+                toString days ++ " day "
+            else if days > 1 then
+                toString days ++ " days "
             else
                 ""
 
         hoursString =
-            if delta.hours == 1 then
-                toString (delta.hours % 24) ++ " hours left"
+            if hours == 1 then
+                toString hours ++ " hour left"
+            else if delta.hours < 0 then
+                "overdue by " ++ toString (delta.hours * -1) ++ " hours"
             else
-                toString (delta.hours % 24) ++ " hours left"
+                toString hours ++ " hours left"
     in
-    daysString ++ hoursString
+    ( daysString ++ hoursString, delta.minutes )
 
 
-renderCurrentTask : Task.TaskUser -> Task.TurnUser -> Time -> Int -> ListGroup.Item msg
-renderCurrentTask task turn time timezoneOffset =
+noCurrentTasks : ListGroup.Item msg
+noCurrentTasks =
     ListGroup.li [ ListGroup.attrs [ class "flex-column align-items-start" ] ]
+        [ div [ class "d-flex w-100 justify-content-between" ]
+            [ h5 [ class "mb-1" ] [ span [ style [ ( "margin-right", "20px" ) ] ] [ text "All done!" ] ] ]
+        , p [ class "mb-1" ] [ text "No current tasks. Enjoy a well organized flat!" ]
+        ]
+
+
+noUpcomingTasks : ListGroup.Item msg
+noUpcomingTasks =
+    ListGroup.li [ ListGroup.attrs [ class "flex-column align-items-start" ] ]
+        [ div [ class "d-flex w-100 justify-content-between" ]
+            [ h5 [ class "mb-1" ] [ span [ style [ ( "margin-right", "20px" ) ] ] [ text "Did you do the setup?" ] ] ]
+        , p [ class "mb-1" ] [ text "No upcoming tasks... You could add some!" ]
+        ]
+
+
+renderCurrentTask : Task.TaskUser -> Task.TurnUser -> Time -> Int -> ( ListGroup.Item msg, Int )
+renderCurrentTask task turn time timezoneOffset =
+    let
+        ( remainingText, remainingTime ) =
+            taskRemainingTime turn.start task.completionTime time timezoneOffset
+    in
+    ( ListGroup.li [ ListGroup.attrs [ class "flex-column align-items-start" ] ]
         [ div [ class "d-flex w-100 justify-content-between" ]
             [ h5 [ class "mb-1" ]
                 [ span [ style [ ( "margin-right", "20px" ) ] ] [ text task.title ]
                 , Badge.badge [] [ text <| turn.user.firstName ++ " " ++ turn.user.lastName ]
                 ]
-            , h5 [ class "mb-1" ]
-                [ Badge.badgeWarning []
-                    [ text <|
-                        taskRemainingTime turn.start task.completionTime time timezoneOffset
-                    ]
-                ]
-            , p [ class "mb-1" ] [ text task.description ]
+            , small [] [ text remainingText ]
+            ]
+        , div [ class "d-flex w-100 justify-content-between" ]
+            [ p [ class "mb-1" ] [ text task.description ]
+            , Button.button
+                [ Button.small, Button.success, Button.attrs [ class "ml-1" ] ]
+                [ text "Done" ]
             ]
         ]
+    , remainingTime
+    )
 
 
-renderUpcomingTask : Task.TaskUser -> Task.TurnUser -> Time -> Int -> ListGroup.Item msg
+renderUpcomingTask : Task.TaskUser -> Task.TurnUser -> Time -> Int -> ( ListGroup.Item msg, Int )
 renderUpcomingTask task turn time timezoneOffset =
-    ListGroup.li [ ListGroup.attrs [ class "flex-column align-items-start" ] ]
+    ( ListGroup.li [ ListGroup.attrs [ class "flex-column align-items-start" ] ]
         [ div [ class "d-flex w-100 justify-content-between" ]
             [ h5 [ class "mb-1" ]
                 [ span [ style [ ( "margin-right", "20px" ) ] ] [ text task.title ] ]
             ]
         ]
+    , 0
+    )
