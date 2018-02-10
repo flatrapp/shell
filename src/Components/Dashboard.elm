@@ -185,7 +185,7 @@ content model globals tasks currentUser time =
     ( Grid.container []
         [ Grid.row []
             [ Grid.col []
-                [ Html.h1 [] [ text <| greeting globals.timezoneOffset time ++ ", " ++ currentUser.firstName ++ " " ++ currentUser.lastName ++ "!" ] ]
+                [ Html.h1 [] [ text <| greeting globals.timezoneOffset time ++ ", " ++ currentUser.firstName ++ "!" ] ]
             ]
         , hr [] []
         , br [] []
