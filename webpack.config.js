@@ -1,5 +1,7 @@
-var webpack = require('webpack')
-var path = require("path");
+const webpack = require('webpack')
+const path = require("path");
+
+const UglifyJsPlugin = require('uglifyjs-webpack-plugin')
 
 module.exports = {
   entry: {
@@ -56,6 +58,7 @@ module.exports = {
           jQuery: 'jquery',
           'window.jQuery': 'jquery',
           Tether: 'tether'
-        })
+        }),
+	new UglifyJsPlugin()
     ]
 };
