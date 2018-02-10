@@ -6,6 +6,7 @@ import UrlParser exposing (..)
 type SettingsSubPage
     = SettingsMainPage
     | SettingsTasksPage
+    | SettingsUsersPage
 
 type Page
     = LoginPage
@@ -27,6 +28,7 @@ locationMatchers =
         , map SignupPage <| s "signup"
         , map (SettingsPage SettingsMainPage) <| s "settings"
         , map (SettingsPage SettingsTasksPage) <| s "settings" </> s "tasks"
+        , map (SettingsPage SettingsUsersPage) <| s "settings" </> s "users"
         ]
 
 

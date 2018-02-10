@@ -3,9 +3,10 @@ module Components.Settings exposing (..)
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Components.Settings.Tasks as Tasks
+import Components.Settings.Users as Users
 import Globals.Types
-import Helpers.Operators exposing ((!:), (!>))
 import Helpers.Functions exposing (send)
+import Helpers.Operators exposing ((!:), (!>))
 import Html exposing (Html, a, div, li, nav, text, ul)
 import Html.Attributes exposing (class, href)
 import Pages exposing (SettingsSubPage(..))
@@ -13,18 +14,21 @@ import Pages exposing (SettingsSubPage(..))
 
 type alias Model =
     { tasks : Tasks.Model
+    , users : Users.Model
     }
 
 
 initialModel : Model
 initialModel =
     { tasks = Tasks.initialModel
+    , users = Users.initialModel
     }
 
 
 type Msg
     = ViewState (Maybe SettingsSubPage)
     | Tasks Tasks.Msg
+    | Users Users.Msg
 
 
 update : Msg -> Model -> Globals.Types.Model -> ( Model, Cmd Msg, Cmd Globals.Types.Msg )
@@ -40,17 +44,35 @@ update msg model globals =
             in
             { model | tasks = newModel } !> ( [ Cmd.map Tasks cmd ], [ globalsCmd ] )
 
+        Users umsg ->
+            let
+                ( newModel, cmd, globalsCmd ) =
+                    Users.update umsg model.users globals
+            in
+            { model | users = newModel } !> ( [ Cmd.map Users cmd ], [ globalsCmd ] )
+
+
 viewStateMsgs : Maybe SettingsSubPage -> List Msg
 viewStateMsgs subPage =
     case subPage of
         Just SettingsMainPage ->
             [ Tasks <| Tasks.ViewState False
+            , Users <| Users.ViewState False
             ]
+
         Just SettingsTasksPage ->
             [ Tasks <| Tasks.ViewState True
+            , Users <| Users.ViewState False
             ]
+
+        Just SettingsUsersPage ->
+            [ Tasks <| Tasks.ViewState False
+            , Users <| Users.ViewState True
+            ]
+
         Nothing ->
             [ Tasks <| Tasks.ViewState False
+            , Users <| Users.ViewState True
             ]
 
 
@@ -67,14 +89,18 @@ view page model globals =
             ]
         ]
 
+
 viewContent : SettingsSubPage -> Model -> Globals.Types.Model -> Html msg
 viewContent page model globals =
     case page of
         SettingsMainPage ->
             text "SettingsMainPage"
+
         SettingsTasksPage ->
             Tasks.view model.tasks globals
 
+        SettingsUsersPage ->
+            Users.view model.users globals
 
 
 viewSidebar : SettingsSubPage -> Html msg
@@ -94,7 +120,9 @@ viewSidebar page =
         [ div [ class "bd-toc-item active" ]
             [ text "Navigation"
             , ul [ class "nav bd-sidenav" ]
-                [ sidebarLink "Tasks" SettingsTasksPage page ]
+                [ sidebarLink "Tasks" SettingsTasksPage page
+                , sidebarLink "Users" SettingsUsersPage page
+                ]
             ]
         ]
 
@@ -109,5 +137,8 @@ pageToUrl subPage =
 
                 SettingsTasksPage ->
                     "tasks"
+
+                SettingsUsersPage ->
+                    "users"
     in
     "#settings/" ++ subPageUrl
