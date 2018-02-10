@@ -89,11 +89,11 @@ update msg model globals =
                 model !: []
 
         ShowView ->
+            -- Some data could have changed, load immediately
             update UpdateData model globals
 
         HideView ->
-            -- Clear all data that could change while the component is hidden
-            { model | currentUser = Nothing } !: []
+            model !: []
 
         TimeTick time ->
             if model.viewState && (model.lastUpdate + updateInterval) < time then
