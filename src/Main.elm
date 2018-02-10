@@ -37,33 +37,45 @@ type alias Flags =
 init : Flags -> Location -> ( Model.Model, Cmd Msg.Msg )
 init flags location =
     let
+        -- First, get the initial navbar state so that we don't have to care for that anymore
         ( navState, navCmd ) =
             Navbar.initialState NavbarEvent
 
-        ( model, cmd ) =
-            update Msg.AppInitialized (Model.initialModel location navState flags.timezoneOffset flags.serverInput)
+        -- Let's get the initial model now so we can put our stuff into it
+        initialModel =
+            Model.initialModel location navState flags.timezoneOffset flags.serverInput
 
+        -- The authentication needs to be saved before the first call to the main update function
+        -- Else, it will redirect the user despite being logged in
+        -- Later, he'll then be redirected to the dashboard  -> Not exactly what we want
         ( newGlobals, authSaveGlobalsCmd, authSaveMainCmd ) =
             case flags.auth of
                 Just auth ->
-                    Globals.update (Globals.Types.SaveAuthentication auth) model.globals
+                    Globals.update (Globals.Types.SaveAuthentication auth) initialModel.globals
 
                 Nothing ->
-                    ( model.globals, Cmd.none, Cmd.none )
+                    ( initialModel.globals, Cmd.none, Cmd.none )
 
         authSaveCmd =
             Cmd.batch [ Cmd.map Globals authSaveGlobalsCmd, authSaveMainCmd ]
 
+        -- Now that the authentication is saved in newGlobals, let's do our first call to the update function
+        -- letting everyone know the app is initialized
+        ( model, cmd ) =
+            update Msg.AppInitialized { initialModel | globals = newGlobals }
+
+        -- Request our first time tick so that we don't have to wait a second for the subscription
         timeCmd =
             Task.perform Msg.TimeTick Time.now
 
+        -- Put the invitation code into the signup model, in case we got one passed via the URL
         signupModel =
             model.signup
 
         newSignupModel =
             { signupModel | invitationCode = flags.invitationCode }
     in
-    { model | globals = newGlobals, signup = newSignupModel } ! [ navCmd, cmd, authSaveCmd, timeCmd ]
+    { model | signup = newSignupModel } ! [ navCmd, cmd, authSaveCmd, timeCmd ]
 
 
 updateWrapper : Msg.Msg -> Model.Model -> ( Model.Model, Cmd Msg.Msg )
