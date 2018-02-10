@@ -5,10 +5,12 @@ import Json.Decode as Decode
 import Json.Decode.Pipeline as DecodePipeline
 import Task
 
+
 send : msg -> Cmd msg
 send msg =
     Task.succeed msg
         |> Task.perform identity
+
 
 errorDecoder : (String -> String -> a) -> Decode.Decoder a
 errorDecoder errDec =

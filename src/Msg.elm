@@ -3,8 +3,8 @@ module Msg exposing (..)
 import Bootstrap.Navbar
 import Components.Dashboard
 import Components.Login
-import Components.Signup
 import Components.Settings
+import Components.Signup
 import Globals.Types
 import Navigation
 import Time

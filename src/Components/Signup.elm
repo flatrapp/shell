@@ -2,7 +2,7 @@ module Components.Signup exposing (..)
 
 import Bootstrap.Button as Button
 import Bootstrap.Form as Form
-import Bootstrap.Form.Input as Input exposing (value, onInput)
+import Bootstrap.Form.Input as Input exposing (onInput, value)
 import Globals.Types
 import Helpers.Authentication exposing (..)
 import Helpers.Operators exposing ((!:), (!>))

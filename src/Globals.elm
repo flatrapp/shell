@@ -138,12 +138,14 @@ viewStateMsgs page =
             , Msg.Signup <| Signup.ViewState False
             , Msg.Settings <| Settings.ViewState Nothing
             ]
+
         SignupPage ->
             [ Msg.Login <| Login.ViewState False
             , Msg.Dashboard <| Dashboard.ViewState False
             , Msg.Signup <| Signup.ViewState True
             , Msg.Settings <| Settings.ViewState Nothing
             ]
+
         SettingsPage subPage ->
             [ Msg.Login <| Login.ViewState False
             , Msg.Dashboard <| Dashboard.ViewState False
