@@ -2,6 +2,10 @@
 
 require('bootstrap');
 require('bootstrap/dist/css/bootstrap.css');
+
+// TODO: Remove this and all usage of these definitions
+require('./bootstrap-docs.min.css');
+
 require('font-awesome/css/font-awesome.css');
 var iziToast = require('izitoast/dist/js/iziToast.min.js');
 require('izitoast/dist/css/iziToast.min.css');

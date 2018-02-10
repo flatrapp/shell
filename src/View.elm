@@ -3,10 +3,11 @@ module View exposing (view)
 import Bootstrap.Button as Button
 import Bootstrap.Grid as Grid
 import Bootstrap.Navbar as Navbar exposing (..)
-import Components.Dashboard exposing (view)
-import Components.Login exposing (view)
+import Components.Dashboard
+import Components.Login
 import Components.NotFound
-import Components.Signup exposing (view)
+import Components.Settings
+import Components.Signup
 import Globals.Types
 import Helpers.Authentication exposing (isAuthenticated)
 import Html exposing (..)
@@ -81,6 +82,9 @@ content model =
             in
             ( Html.map Msg.Dashboard bodyContent, Html.map Msg.Dashboard footerContent )
 
+        SettingsPage page ->
+            ( Html.map Msg.Settings (Components.Settings.view page model.settings model.globals), text "" )
+
 
 footer : Globals.Types.Model -> Html msg -> Html msg
 footer globals customFooter =
@@ -139,7 +143,7 @@ navbarItems authenticated model config =
         config
             |> Navbar.items
                 [ itemLinkDynamic DashboardPage model.globals.page [ href "#" ] [ text "Dashboard" ]
-                , Navbar.itemLink [ href "#cleaning-schedule" ] [ text "Cleaning Schedule" ]
+                , Navbar.itemLink [ href "#settings" ] [ text "Settings" ]
                 ]
             |> Navbar.customItems
                 [ Navbar.textItem

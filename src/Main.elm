@@ -3,6 +3,7 @@ module Main exposing (main)
 import Bootstrap.Navbar as Navbar
 import Components.Dashboard exposing (Model, Msg)
 import Components.Login exposing (Model, Msg)
+import Components.Settings exposing (Model, Msg)
 import Components.Signup exposing (Model, Msg)
 import Globals exposing (..)
 import Globals.Types
@@ -119,6 +120,13 @@ update msg model =
                     Components.Dashboard.update dmsg model.dashboard model.globals
             in
             { model | dashboard = newModel } ! [ Cmd.map Dashboard cmd, Cmd.map Globals globalsCmd ]
+
+        Settings smsg ->
+            let
+                ( newModel, cmd, globalsCmd ) =
+                    Components.Settings.update smsg model.settings model.globals
+            in
+            { model | settings = newModel } ! [ Cmd.map Settings cmd, Cmd.map Globals globalsCmd ]
 
         Globals gmsg ->
             let

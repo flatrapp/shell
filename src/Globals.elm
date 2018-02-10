@@ -2,6 +2,8 @@ port module Globals exposing (..)
 
 import Components.Dashboard as Dashboard
 import Components.Login as Login
+import Components.Settings as Settings
+import Components.Signup as Signup
 import Globals.Types exposing (Authentication, Model, Msg(..))
 import Helpers.Authentication exposing (getValidAuth, isAuthenticated)
 import Helpers.Operators exposing ((!:), (!>))
@@ -126,14 +128,32 @@ viewStateMsgs page =
         LoginPage ->
             [ Msg.Login <| Login.ViewState True
             , Msg.Dashboard <| Dashboard.ViewState False
+            , Msg.Signup <| Signup.ViewState False
+            , Msg.Settings <| Settings.ViewState Nothing
             ]
 
         DashboardPage ->
             [ Msg.Login <| Login.ViewState False
             , Msg.Dashboard <| Dashboard.ViewState True
+            , Msg.Signup <| Signup.ViewState False
+            , Msg.Settings <| Settings.ViewState Nothing
+            ]
+        SignupPage ->
+            [ Msg.Login <| Login.ViewState False
+            , Msg.Dashboard <| Dashboard.ViewState False
+            , Msg.Signup <| Signup.ViewState True
+            , Msg.Settings <| Settings.ViewState Nothing
+            ]
+        SettingsPage subPage ->
+            [ Msg.Login <| Login.ViewState False
+            , Msg.Dashboard <| Dashboard.ViewState False
+            , Msg.Signup <| Signup.ViewState False
+            , Msg.Settings <| Settings.ViewState <| Just subPage
             ]
 
         _ ->
             [ Msg.Login <| Login.ViewState False
             , Msg.Dashboard <| Dashboard.ViewState False
+            , Msg.Signup <| Signup.ViewState False
+            , Msg.Settings <| Settings.ViewState Nothing
             ]

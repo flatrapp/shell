@@ -4,6 +4,7 @@ import Bootstrap.Navbar
 import Components.Dashboard
 import Components.Login
 import Components.Signup
+import Components.Settings
 import Globals.Types
 import Navigation
 import Time
@@ -13,8 +14,9 @@ type Msg
     = AppInitialized
     | TimeTick Time.Time
     | LocationChange Navigation.Location
+    | NavbarEvent Bootstrap.Navbar.State
+    | Globals Globals.Types.Msg
     | Login Components.Login.Msg
     | Signup Components.Signup.Msg
     | Dashboard Components.Dashboard.Msg
-    | Globals Globals.Types.Msg
-    | NavbarEvent Bootstrap.Navbar.State
+    | Settings Components.Settings.Msg
