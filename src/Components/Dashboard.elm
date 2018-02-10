@@ -46,7 +46,7 @@ type alias Model =
     , lastUpdate : Time.Time
     , currentUser : Maybe UserInfo
     , users : Maybe (Dict Int UserInfo)
-    , tasks : Maybe (List Task.Task)
+    , tasks : Maybe (Dict Int Task.Task)
     }
 
 
@@ -167,7 +167,7 @@ view model globals =
             ( loadingScreen, text "" )
 
         Just ( currentUser, tasks, users, time ) ->
-            case Task.tasksMapUser users tasks of
+            case Task.tasksMapUser users <| Dict.values tasks of
                 Just tasksUser ->
                     content model globals tasksUser currentUser time
 
