@@ -24,23 +24,29 @@ type alias UserInfo =
     , email : String
     , firstName : String
     , lastName : String
+    , disabled : Bool
+    , absent : Bool
     }
 
 
 userInfoDecoder : Decode.Decoder UserInfo
 userInfoDecoder =
     DecodePipeline.decode
-        (\id email firstName lastName ->
+        (\id email firstName lastName disabled absent ->
             { id = id
             , email = email
             , firstName = firstName
             , lastName = lastName
+            , disabled = disabled
+            , absent = absent
             }
         )
         |> DecodePipeline.required "id" Decode.int
         |> DecodePipeline.required "email" Decode.string
         |> DecodePipeline.required "firstName" Decode.string
         |> DecodePipeline.required "lastName" Decode.string
+        |> DecodePipeline.required "disabled" Decode.bool
+        |> DecodePipeline.required "absent" Decode.bool
 
 
 

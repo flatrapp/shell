@@ -237,6 +237,7 @@ signupRequestEncode data =
         [ ( "firstName", Encode.string data.firstName )
         , ( "lastName", Encode.string data.lastName )
         , ( "password", Encode.string data.password )
+        , ( "absent", Encode.bool False )
         ]
             ++ (case data.invitationCode of
                     Nothing ->
