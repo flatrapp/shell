@@ -288,6 +288,10 @@ usersListEntry user =
                 Badge.badge [ style [ ( "margin-left", "20px" ) ] ] [ text "Absent" ]
               else
                 text ""
+            , if not user.emailVerified then
+                Badge.badge [ style [ ( "margin-left", "20px" ) ] ] [ text "Email not verified" ]
+              else
+                text ""
             , br [] []
             , a [ href <| "mailto:" ++ user.email ] [ text user.email ]
             ]
