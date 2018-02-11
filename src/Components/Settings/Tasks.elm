@@ -365,7 +365,7 @@ tasksListEditEntry maybeTask model users =
                 , Grid.row []
                     [ Grid.col []
                         [ InputGroup.config
-                            (InputGroup.text
+                            (InputGroup.number
                                 [ Input.value model.editTaskFrequency
                                 , Input.placeholder "3.5"
                                 , Input.onInput EditTaskChangeFrequency
@@ -379,7 +379,7 @@ tasksListEditEntry maybeTask model users =
                         ]
                     , Grid.col []
                         [ InputGroup.config
-                            (InputGroup.text
+                            (InputGroup.number
                                 [ Input.value model.editTaskCompletionTime
                                 , Input.placeholder "36"
                                 , Input.onInput EditTaskChangeCompletionTime
