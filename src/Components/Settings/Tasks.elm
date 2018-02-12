@@ -185,7 +185,7 @@ update msg model globals =
 
                 _ ->
                     -- TODO: Handle errors!
-                    model !: [ errorToast "Update error" "An error occured while updating" ]
+                    model !: [ errorToast "Update error" "An error occured while updating the task. Please try again." ]
 
         CreateTask ->
             let
@@ -225,7 +225,7 @@ update msg model globals =
 
                 _ ->
                     -- TODO: Handle errors!
-                    model !: [ errorToast "Update error" "An error occured while updating" ]
+                    model !: [ errorToast "Create error" "An error occured while creating the task. Please try again." ]
 
 
 clearEditTask : Model -> Model

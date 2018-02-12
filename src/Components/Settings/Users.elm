@@ -13,7 +13,7 @@ import Globals.Types
 import Helpers.Functions exposing (..)
 import Helpers.Invitation as Invitation exposing (..)
 import Helpers.Operators exposing ((!:), (!>))
-import Helpers.Toast as Toast exposing (errorToast)
+import Helpers.Toast as Toast exposing (errorToast, successToast)
 import Helpers.User as User exposing (..)
 import Html exposing (Html, a, br, div, h2, h3, hr, i, text)
 import Html.Attributes exposing (class, href, style)
@@ -137,7 +137,7 @@ update msg model globals =
         ResendInvitationResponse res ->
             case resendInvitationResponseDecode res of
                 ResendInvitationSuccessResponse ->
-                    model !: []
+                    model !: [ successToast "Invitation email resent" ""]
 
                 _ ->
                     -- TODO: Handle errors!
@@ -149,10 +149,12 @@ update msg model globals =
                     case model.invitations of
                         Nothing ->
                             -- Load the invitations again, clearly something went wrong
+                            -- This should not happen at this stage, poor recovery attempt
                             model !: [ send UpdateData ]
 
                         Just invitations ->
-                            { model | invitations = Just <| Dict.remove id invitations } !: []
+                            { model | invitations = Just <| Dict.remove id invitations } !: [
+                                successToast "Invitation deleted" "" ]
 
                 _ ->
                     -- TODO: Handle errors!
