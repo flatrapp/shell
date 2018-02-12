@@ -362,6 +362,9 @@ finishTurnErrorDecoder =
             FinishTurnErrorResponse
                 { error =
                     case code of
+                        "unauthorized" ->
+                            TaskUnauthorizedError
+
                         "task_not_found" ->
                             TaskNotFoundError
 
