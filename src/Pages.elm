@@ -3,10 +3,12 @@ module Pages exposing (..)
 import Navigation exposing (Location)
 import UrlParser exposing (..)
 
+
 type SettingsSubPage
     = SettingsMainPage
     | SettingsTasksPage
     | SettingsUsersPage
+
 
 type Page
     = LoginPage

@@ -3,8 +3,8 @@ module Model exposing (Model, initialModel)
 import Bootstrap.Navbar
 import Components.Dashboard exposing (Model, initialModel)
 import Components.Login exposing (Model, initialModel)
-import Components.Signup exposing (Model, initialModel)
 import Components.Settings exposing (Model, initialModel)
+import Components.Signup exposing (Model, initialModel)
 import Globals.Types
 import Navigation exposing (Location)
 

@@ -129,9 +129,9 @@ menu navigationEnabled model =
         |> Navbar.view model.navState
 
 
-itemLinkDynamic : Pages.Page -> Pages.Page -> List (Html.Attribute msg) -> List (Html.Html msg) -> Navbar.Item msg
-itemLinkDynamic dstPage currentPage attrs elems =
-    if dstPage == currentPage then
+itemLinkDynamic : Bool -> List (Html.Attribute msg) -> List (Html.Html msg) -> Navbar.Item msg
+itemLinkDynamic active attrs elems =
+    if active then
         Navbar.itemLinkActive attrs elems
     else
         Navbar.itemLink attrs elems
@@ -142,8 +142,17 @@ navbarItems authenticated model config =
     if authenticated then
         config
             |> Navbar.items
-                [ itemLinkDynamic DashboardPage model.globals.page [ href "#" ] [ text "Dashboard" ]
-                , Navbar.itemLink [ href "#settings" ] [ text "Settings" ]
+                [ itemLinkDynamic (DashboardPage == model.globals.page) [ href "#" ] [ text "Dashboard" ]
+                , itemLinkDynamic
+                    (case model.globals.page of
+                        SettingsPage _ ->
+                            True
+
+                        _ ->
+                            False
+                    )
+                    [ href "#settings" ]
+                    [ text "Settings" ]
                 ]
             |> Navbar.customItems
                 [ Navbar.textItem

@@ -21,24 +21,9 @@ import Time exposing (Time)
 import Time.DateTime as DateTime exposing (DateTime)
 
 
-greeting : Int -> Time.Time -> String
-greeting timezoneOffset time =
-    let
-        hour =
-            DateTime.hour <| DateTime.addMinutes timezoneOffset <| DateTime.fromTimestamp time
-    in
-    (hour >= 21 || hour < 5)
-        => "Good Night"
-        |= (hour >= 5 && hour < 10)
-        => "Good Morning"
-        |= (hour >= 17 && hour < 21)
-        => "Good Evening"
-        |= "Hello"
-
-
 updateInterval : Time.Time
 updateInterval =
-    10 * Time.second
+    1.5 * Time.minute
 
 
 type alias Model =
@@ -46,7 +31,7 @@ type alias Model =
     , lastUpdate : Time.Time
     , currentUser : Maybe UserInfo
     , users : Maybe (Dict Int UserInfo)
-    , tasks : Maybe (List Task.Task)
+    , tasks : Maybe (Dict Int Task.Task)
     }
 
 
@@ -191,7 +176,7 @@ view model globals =
             ( loadingScreen, text "" )
 
         Just ( currentUser, tasks, users, time ) ->
-            case Task.tasksMapUser users tasks of
+            case Task.tasksMapUser users <| Dict.values tasks of
                 Just tasksUser ->
                     content model globals tasksUser currentUser time
 
@@ -204,12 +189,27 @@ loadingScreen =
     Html.h1 [] [ text "Loading..." ]
 
 
+greeting : Int -> Time.Time -> String
+greeting timezoneOffset time =
+    let
+        hour =
+            DateTime.hour <| DateTime.addMinutes timezoneOffset <| DateTime.fromTimestamp time
+    in
+    (hour >= 21 || hour < 5)
+        => "Good Night"
+        |= (hour >= 5 && hour < 10)
+        => "Good Morning"
+        |= (hour >= 17 && hour < 21)
+        => "Good Evening"
+        |= "Hello"
+
+
 content : Model -> Globals.Types.Model -> List Task.TaskUser -> UserInfo -> Time.Time -> ( Html Msg, Html msg )
 content model globals tasks currentUser time =
     ( Grid.container []
         [ Grid.row []
             [ Grid.col []
-                [ Html.h1 [] [ text <| greeting globals.timezoneOffset time ++ ", " ++ currentUser.firstName ++ " " ++ currentUser.lastName ++ "!" ] ]
+                [ Html.h1 [] [ text <| greeting globals.timezoneOffset time ++ ", " ++ currentUser.firstName ++ "!" ] ]
             ]
         , hr [] []
         , br [] []
