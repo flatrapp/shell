@@ -59,6 +59,6 @@ module.exports = {
           'window.jQuery': 'jquery',
           Tether: 'tether'
         }),
-	new UglifyJsPlugin()
+        new UglifyJsPlugin()
     ]
 };

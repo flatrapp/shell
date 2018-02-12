@@ -5,5 +5,6 @@ stdenv.mkDerivation rec {
   buildInputs = [
     elmPackages.elm
     nodejs-8_x
+    yarn
   ];
 }

@@ -214,7 +214,7 @@ userInfoFromIds userDict userList =
 
 
 
--- ////////// CREATE INVITATION //////////
+-- ////////// CREATE TASK //////////
 
 
 type CreateTaskResponse
@@ -323,6 +323,67 @@ listTasksErrorDecoder =
                             UnknownListTasksError code
                 , message = message
                 }
+
+
+
+-- ////////// FINISH TASK //////////
+
+
+type FinishTurnResponse
+    = FinishTurnSuccessResponse
+    | FinishTurnErrorResponse { error : FinishTurnError, message : String }
+    | FinishTurnInvalidResponse
+    | FinishTurnHttpError Http.Error
+
+
+type FinishTurnError
+    = UnknownFinishTurnError String
+    | TaskUnauthorizedError
+    | TaskNotFoundError
+
+
+finishTurnRequest : Authentication -> Int -> Http.Request FinishTurnResponse
+finishTurnRequest auth taskId =
+    Http.request
+        { body = Http.emptyBody
+        , expect = Http.expectStringResponse (\_ -> Ok FinishTurnSuccessResponse)
+        , headers = authenticationHeaders auth
+        , method = "POST"
+        , timeout = Just requestTimeout
+        , url = auth.serverUrl ++ "/tasks/" ++ toString taskId ++ "/finish"
+        , withCredentials = False
+        }
+
+
+finishTurnErrorDecoder : Decode.Decoder FinishTurnResponse
+finishTurnErrorDecoder =
+    errorDecoder
+        (\code message ->
+            FinishTurnErrorResponse
+                { error =
+                    case code of
+                        "unauthorized" ->
+                            TaskUnauthorizedError
+
+                        "task_not_found" ->
+                            TaskNotFoundError
+
+                        _ ->
+                            UnknownFinishTurnError code
+                , message = message
+                }
+        )
+
+
+finishTurnResponseDecode :
+    Result Http.Error FinishTurnResponse
+    -> FinishTurnResponse
+finishTurnResponseDecode res =
+    responseDecode
+        finishTurnErrorDecoder
+        FinishTurnInvalidResponse
+        FinishTurnHttpError
+        res
 
 
 
