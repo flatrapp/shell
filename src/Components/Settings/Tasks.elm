@@ -6,14 +6,13 @@ import Bootstrap.Form.Checkbox as Checkbox
 import Bootstrap.Form.Input as Input
 import Bootstrap.Form.InputGroup as InputGroup
 import Bootstrap.Grid as Grid
-import Bootstrap.Grid.Col as Col
 import Bootstrap.ListGroup as ListGroup
 import Dict exposing (Dict)
 import Exts.Html
 import Globals.Types
 import Helpers.Operators exposing ((!:), (!>))
 import Helpers.Task as Task exposing (..)
-import Helpers.Toast exposing (errorToast)
+import Helpers.Toast exposing (errorToast, successToast)
 import Helpers.User as User exposing (..)
 import Html exposing (Html, a, br, div, h2, h5, hr, i, li, nav, small, text, ul)
 import Html.Attributes exposing (class, href, style)
@@ -177,9 +176,12 @@ update msg model globals =
                             model !: []
 
                         Just tasks ->
-                            -- TODO: Create infotoast
-                            { model | tasks = Just <| Dict.insert task.id task tasks }
-                                !: [ errorToast "Success" "Task updated successfully" ]
+                            let
+                                newModel =
+                                    clearEditTask model
+                            in
+                            { newModel | tasks = Just <| Dict.insert task.id task tasks }
+                                !: [ successToast "Success" "Task updated successfully" ]
 
                 _ ->
                     -- TODO: Handle errors!
@@ -214,8 +216,12 @@ update msg model globals =
 
                         Just tasks ->
                             -- TODO: Create infotoast
-                            { model | tasks = Just <| Dict.insert task.id task tasks }
-                                !: [ errorToast "Success" "Task created successfully" ]
+                            let
+                                newModel =
+                                    clearEditTask model
+                            in
+                            { newModel | tasks = Just <| Dict.insert task.id task tasks }
+                                !: [ successToast "Success" "Task created successfully" ]
 
                 _ ->
                     -- TODO: Handle errors!

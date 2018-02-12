@@ -1,4 +1,4 @@
-port module Helpers.Toast exposing (Toast, errorToast, sendToast, simpleToast)
+port module Helpers.Toast exposing (Toast, errorToast, infoToast, sendToast, simpleToast, successToast)
 
 import Json.Encode as Encode
 
@@ -14,6 +14,11 @@ errorColor =
 infoColor : String
 infoColor =
     "blue"
+
+
+successColor : String
+successColor =
+    "green"
 
 
 type alias Toast =
@@ -68,4 +73,26 @@ errorToast title message =
             , title = title
             , timeout = Nothing
             , color = errorColor
+            }
+
+
+infoToast : String -> String -> Cmd msg
+infoToast title message =
+    sendToastObject <|
+        encodeToast
+            { message = message
+            , title = title
+            , timeout = Nothing
+            , color = infoColor
+            }
+
+
+successToast : String -> String -> Cmd msg
+successToast title message =
+    sendToastObject <|
+        encodeToast
+            { message = message
+            , title = title
+            , timeout = Nothing
+            , color = successColor
             }
