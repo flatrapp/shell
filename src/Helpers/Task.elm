@@ -338,6 +338,7 @@ type FinishTurnResponse
 
 type FinishTurnError
     = UnknownFinishTurnError String
+    | TaskUnauthorizedError
     | TaskNotFoundError
 
 

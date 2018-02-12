@@ -127,8 +127,16 @@ update msg model globals =
                         Nothing ->
                             model !: []
 
-                _ ->
-                    model !: []
+                FinishTurnErrorResponse _ ->
+                    -- TODO do finegrained error handling
+                    model !: [ errorToast "Error" "Unkown error while finishing turn." ]
+
+                FinishTurnInvalidResponse ->
+                    model !: [ errorToast "Error" "Unkown error while finishing turn." ]
+
+                FinishTurnHttpError _ ->
+                    -- TODO maybe to finegrained error handling
+                    model !: [ errorToast "Connection Error" "There was an error while communicating with the server." ]
 
         CurrentUserResponse result ->
             case currentUserResponseDecode result of
