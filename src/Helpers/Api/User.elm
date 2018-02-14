@@ -1,4 +1,4 @@
-module Helpers.User exposing (..)
+module Helpers.Api.User exposing (..)
 
 import Dict exposing (Dict)
 import Globals.Types exposing (Authentication)

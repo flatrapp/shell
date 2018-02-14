@@ -11,9 +11,9 @@ import Dict exposing (Dict)
 import Exts.Html
 import Globals.Types
 import Helpers.Operators exposing ((!:), (!>))
-import Helpers.Task as Task exposing (..)
+import Helpers.Api.Task as Task exposing (..)
 import Helpers.Toast exposing (errorToast, successToast)
-import Helpers.User as User exposing (..)
+import Helpers.Api.User as User exposing (..)
 import Html exposing (Html, a, br, div, h2, h5, hr, i, li, nav, small, text, ul)
 import Html.Attributes exposing (class, href, style)
 import Html.Events exposing (onSubmit)

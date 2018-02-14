@@ -4,9 +4,10 @@ import Bootstrap.Button as Button
 import Bootstrap.Form as Form
 import Bootstrap.Form.Input as Input exposing (onInput, value)
 import Globals.Types
-import Helpers.Authentication exposing (..)
+import Helpers.Api.Authentication exposing (..)
+import Helpers.Authentication exposing (saveAuthentication)
 import Helpers.Operators exposing ((!:), (!>))
-import Helpers.Server exposing (saveServerInput)
+import Helpers.Api.Server exposing (saveServerInput)
 import Helpers.Toast exposing (errorToast)
 import Html exposing (Html, a, div, h1, text)
 import Html.Attributes exposing (for, href, id, style)

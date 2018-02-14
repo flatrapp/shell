@@ -1,10 +1,10 @@
-module Helpers.Task exposing (..)
+module Helpers.Api.Task exposing (..)
 
 import Dict exposing (Dict)
 import Globals.Types exposing (Authentication)
 import Helpers.Authentication exposing (authenticationHeaders)
 import Helpers.Functions exposing (..)
-import Helpers.User exposing (UserInfo)
+import Helpers.Api.User exposing (UserInfo)
 import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as DecodePipeline exposing (decode, required)

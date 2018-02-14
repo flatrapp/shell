@@ -10,9 +10,9 @@ import Globals.Types
 import Guards exposing (..)
 import Helpers.Functions exposing (..)
 import Helpers.Operators exposing ((!:), (!>))
-import Helpers.Task as Task exposing (..)
+import Helpers.Api.Task as Task exposing (..)
 import Helpers.Toast exposing (errorToast)
-import Helpers.User as User exposing (UserInfo, currentUserResponseDecode, listUsersResponseDecode)
+import Helpers.Api.User as User exposing (UserInfo, currentUserResponseDecode, listUsersResponseDecode)
 import Html exposing (Html, br, div, h5, hr, p, small, span, text)
 import Html.Attributes exposing (class, style)
 import Http

@@ -7,7 +7,7 @@ import Components.Signup as Signup
 import Globals.Types exposing (Authentication, Model, Msg(..))
 import Helpers.Authentication exposing (getValidAuth, isAuthenticated)
 import Helpers.Operators exposing ((!:), (!>))
-import Helpers.Server exposing (ServerInfoResponse(..), serverInfoRequest, serverInfoResponseDecode)
+import Helpers.Api.Server exposing (ServerInfoResponse(..), serverInfoRequest, serverInfoResponseDecode)
 import Helpers.Toast exposing (errorToast, simpleToast)
 import Http
 import Msg

@@ -10,10 +10,10 @@ import Bootstrap.ListGroup as ListGroup
 import Dict exposing (Dict)
 import Globals.Types
 import Helpers.Functions exposing (..)
-import Helpers.Invitation as Invitation exposing (..)
+import Helpers.Api.Invitation as Invitation exposing (..)
 import Helpers.Operators exposing ((!:), (!>))
 import Helpers.Toast as Toast exposing (errorToast, successToast)
-import Helpers.User as User exposing (..)
+import Helpers.Api.User as User exposing (..)
 import Html exposing (Html, a, br, div, h2, h3, hr, i, text)
 import Html.Attributes exposing (class, href, style)
 import Html.Events exposing (onSubmit)

@@ -1,6 +1,6 @@
 module Globals.Types exposing (..)
 
-import Helpers.Server exposing (ServerInfo, ServerInfoResponse)
+import Helpers.Api.Server exposing (ServerInfo, ServerInfoResponse)
 import Http
 import Navigation exposing (Location)
 import Pages

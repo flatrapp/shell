@@ -4,7 +4,7 @@ import Bootstrap.Button as Button
 import Bootstrap.Form as Form
 import Bootstrap.Form.Input as Input exposing (onInput, value)
 import Globals.Types
-import Helpers.Authentication exposing (..)
+import Helpers.Api.Authentication exposing (..)
 import Helpers.Operators exposing ((!:), (!>))
 import Helpers.Toast exposing (errorToast)
 import Html exposing (Html, div, h1, text)

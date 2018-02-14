@@ -1,4 +1,4 @@
-port module Helpers.Server exposing (..)
+port module Helpers.Api.Server exposing (..)
 
 import Helpers.Functions exposing (flexibleResponseDecode, dateDecoder)
 import Http

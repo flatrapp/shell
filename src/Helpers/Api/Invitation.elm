@@ -1,4 +1,4 @@
-port module Helpers.Invitation exposing (..)
+port module Helpers.Api.Invitation exposing (..)
 
 import Dict exposing (Dict)
 import Globals.Types exposing (Authentication)
