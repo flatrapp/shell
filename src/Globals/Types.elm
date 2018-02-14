@@ -1,7 +1,6 @@
 module Globals.Types exposing (..)
 
 import Helpers.Server exposing (ServerInfo, ServerInfoResponse)
-import Helpers.Toast
 import Http
 import Navigation exposing (Location)
 import Pages
