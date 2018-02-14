@@ -72,9 +72,7 @@ currentUserRequest : Authentication -> Http.Request CurrentUserResponse
 currentUserRequest auth =
     Http.request
         { body = Http.emptyBody
-        , expect =
-            Http.expectJson <|
-                Decode.map (\u -> CurrentUserSuccessResponse u) userInfoDecoder
+        , expect = Http.expectJson <| Decode.map CurrentUserSuccessResponse userInfoDecoder
         , headers = authenticationHeaders auth
         , method = "GET"
         , timeout = Just requestTimeout
@@ -93,8 +91,8 @@ currentUserErrorDecoder =
                         "unauthorized" ->
                             CurrentUserUnauthorizedError
 
-                        errorCode ->
-                            CurrentUserUnknownError errorCode
+                        _ ->
+                            CurrentUserUnknownError code
                 , message = message
                 }
         )
@@ -110,7 +108,7 @@ currentUserResponseDecode res =
 
 
 
--- ////////// GET ALL USERS //////////
+-- ////////// LIST USERS //////////
 
 
 type ListUsersResponse
@@ -129,26 +127,28 @@ listUsersRequest : Authentication -> Http.Request ListUsersResponse
 listUsersRequest auth =
     Http.request
         { body = Http.emptyBody
-        , expect =
-            Http.expectJson <|
-                Decode.map
-                    (\users ->
-                        ListUsersSuccessResponse <|
-                            List.foldl
-                                (\user dict ->
-                                    Dict.insert user.id user dict
-                                )
-                                Dict.empty
-                                users
-                    )
-                <|
-                    Decode.list userInfoDecoder
+        , expect = Http.expectJson listUsersSuccessDecoder
         , headers = authenticationHeaders auth
         , method = "GET"
         , timeout = Just requestTimeout
         , url = auth.serverUrl ++ "/users"
         , withCredentials = False
         }
+
+
+listUsersSuccessDecoder : Decode.Decoder ListUsersResponse
+listUsersSuccessDecoder =
+    Decode.list userInfoDecoder
+        |> Decode.map
+            (\users ->
+                ListUsersSuccessResponse <|
+                    List.foldl
+                        (\user dict ->
+                            Dict.insert user.id user dict
+                        )
+                        Dict.empty
+                        users
+            )
 
 
 listUsersErrorDecoder : Decode.Decoder ListUsersResponse
@@ -161,8 +161,8 @@ listUsersErrorDecoder =
                         "unauthorized" ->
                             ListUsersUnauthorizedError
 
-                        errorCode ->
-                            ListUsersUnknownError errorCode
+                        _ ->
+                            ListUsersUnknownError code
                 , message = message
                 }
         )

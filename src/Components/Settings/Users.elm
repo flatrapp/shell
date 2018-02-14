@@ -6,7 +6,6 @@ import Bootstrap.Form as Form
 import Bootstrap.Form.Input as Input
 import Bootstrap.Form.InputGroup as InputGroup
 import Bootstrap.Grid as Grid
-import Bootstrap.Grid.Col as Col
 import Bootstrap.ListGroup as ListGroup
 import Dict exposing (Dict)
 import Globals.Types
@@ -46,7 +45,7 @@ type Msg
     | ListUsersResponse (Result Http.Error User.ListUsersResponse)
     | ListInvitationsResponse (Result Http.Error Invitation.ListInvitationsResponse)
     | CreateInvitationResponse (Result Http.Error Invitation.CreateInvitationResponse)
-    | ResendInvitationResponse (Result Http.Error String)
+    | ResendInvitationResponse (Result Http.Error Invitation.ResendInvitationResponse)
     | DeleteInvitationResponse (Result Http.Error Invitation.DeleteInvitationResponse)
 
 

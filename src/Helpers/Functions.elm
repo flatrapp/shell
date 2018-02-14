@@ -4,7 +4,7 @@ import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as DecodePipeline
 import Task
-
+import Time.DateTime as DateTime exposing (DateTime)
 
 send : msg -> Cmd msg
 send msg =
@@ -20,15 +20,28 @@ errorDecoder errDec =
         |> DecodePipeline.required "message" Decode.string
         |> Decode.field "error"
 
+dateDecoder : Decode.Decoder DateTime
+dateDecoder =
+    Decode.string
+        |> Decode.andThen
+            (\raw ->
+                case DateTime.fromISO8601 raw of
+                    Ok date ->
+                        Decode.succeed date
 
-flexibleResponseDecode : (b -> a) -> Decode.Decoder a -> a -> (Http.Error -> a) -> Result Http.Error b -> a
+                    Err error ->
+                        Decode.fail error
+            )
+
+
+flexibleResponseDecode : (b -> a) -> (String -> Result c a) -> a -> (Http.Error -> a) -> Result Http.Error b -> a
 flexibleResponseDecode successDecoder badStatusDecoder parsingError httpError res =
     case res of
         Ok b ->
             successDecoder b
 
         Err (Http.BadStatus errRes) ->
-            case Decode.decodeString badStatusDecoder errRes.body of
+            case badStatusDecoder errRes.body of
                 Err _ ->
                     parsingError
 
@@ -43,8 +56,8 @@ flexibleResponseDecode successDecoder badStatusDecoder parsingError httpError re
 
 
 responseDecode : Decode.Decoder a -> a -> (Http.Error -> a) -> Result Http.Error a -> a
-responseDecode =
-    flexibleResponseDecode (\a -> a)
+responseDecode badStatusJsonDecoder =
+    flexibleResponseDecode (\a -> a) (\body -> Decode.decodeString badStatusJsonDecoder body)
 
 
 maybeList : List (Maybe a) -> Maybe (List a)

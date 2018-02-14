@@ -118,20 +118,6 @@ turnDecoder =
         |> DecodePipeline.required "startDate" dateDecoder
 
 
-dateDecoder : Decode.Decoder DateTime
-dateDecoder =
-    Decode.string
-        |> Decode.andThen
-            (\raw ->
-                case DateTime.fromISO8601 raw of
-                    Ok date ->
-                        Decode.succeed date
-
-                    Err error ->
-                        Decode.fail error
-            )
-
-
 tasksMapUser : Dict Int UserInfo -> List Task -> Maybe (List TaskUser)
 tasksMapUser users tasks =
     maybeList <| List.map (taskMapUser users) tasks
@@ -225,7 +211,8 @@ type CreateTaskResponse
 
 
 type CreateTaskError
-    = UnknownCreateTaskError String
+    = CreateTaskUnauthorizedError
+    | UnknownCreateTaskError String
 
 
 createTaskRequest : Authentication -> RequestTask -> Http.Request CreateTaskResponse
@@ -259,7 +246,9 @@ createTaskErrorDecoder =
             CreateTaskErrorResponse
                 { error =
                     case code of
-                        -- TODO: Parse errors for real
+                        "unauthorized" ->
+                            CreateTaskUnauthorizedError
+
                         _ ->
                             UnknownCreateTaskError code
                 , message = message
@@ -279,22 +268,15 @@ type ListTasksResponse
 
 
 type ListTasksError
-    = UnknownListTasksError String
+    = ListTasksUnauthorizedError
+    | UnknownListTasksError String
 
 
 listTasksRequest : Authentication -> Http.Request ListTasksResponse
 listTasksRequest auth =
     Http.request
         { body = Http.emptyBody
-        , expect =
-            Http.expectJson <|
-                Decode.map
-                    (\tasks ->
-                        tasks
-                            |> List.foldl (\task dict -> Dict.insert task.id task dict) Dict.empty
-                            |> ListTasksSuccessResponse
-                    )
-                    (Decode.list taskDecoder)
+        , expect = Http.expectJson listTasksSuccessDecoder
         , headers = authenticationHeaders auth
         , method = "GET"
         , timeout = Just requestTimeout
@@ -312,6 +294,17 @@ listTasksResponseDecode res =
         res
 
 
+listTasksSuccessDecoder : Decode.Decoder ListTasksResponse
+listTasksSuccessDecoder =
+    Decode.map
+        (\tasks ->
+            tasks
+                |> List.foldl (\task dict -> Dict.insert task.id task dict) Dict.empty
+                |> ListTasksSuccessResponse
+        )
+        (Decode.list taskDecoder)
+
+
 listTasksErrorDecoder : Decode.Decoder ListTasksResponse
 listTasksErrorDecoder =
     errorDecoder <|
@@ -319,71 +312,13 @@ listTasksErrorDecoder =
             ListTasksErrorResponse
                 { error =
                     case code of
+                        "unauthorized" ->
+                            ListTasksUnauthorizedError
+
                         _ ->
                             UnknownListTasksError code
                 , message = message
                 }
-
-
-
--- ////////// FINISH TASK //////////
-
-
-type FinishTurnResponse
-    = FinishTurnSuccessResponse
-    | FinishTurnErrorResponse { error : FinishTurnError, message : String }
-    | FinishTurnInvalidResponse
-    | FinishTurnHttpError Http.Error
-
-
-type FinishTurnError
-    = UnknownFinishTurnError String
-    | TaskUnauthorizedError
-    | TaskNotFoundError
-
-
-finishTurnRequest : Authentication -> Int -> Http.Request FinishTurnResponse
-finishTurnRequest auth taskId =
-    Http.request
-        { body = Http.emptyBody
-        , expect = Http.expectStringResponse (\_ -> Ok FinishTurnSuccessResponse)
-        , headers = authenticationHeaders auth
-        , method = "POST"
-        , timeout = Just requestTimeout
-        , url = auth.serverUrl ++ "/tasks/" ++ toString taskId ++ "/finish"
-        , withCredentials = False
-        }
-
-
-finishTurnErrorDecoder : Decode.Decoder FinishTurnResponse
-finishTurnErrorDecoder =
-    errorDecoder
-        (\code message ->
-            FinishTurnErrorResponse
-                { error =
-                    case code of
-                        "unauthorized" ->
-                            TaskUnauthorizedError
-
-                        "task_not_found" ->
-                            TaskNotFoundError
-
-                        _ ->
-                            UnknownFinishTurnError code
-                , message = message
-                }
-        )
-
-
-finishTurnResponseDecode :
-    Result Http.Error FinishTurnResponse
-    -> FinishTurnResponse
-finishTurnResponseDecode res =
-    responseDecode
-        finishTurnErrorDecoder
-        FinishTurnInvalidResponse
-        FinishTurnHttpError
-        res
 
 
 
@@ -398,7 +333,9 @@ type UpdateTaskResponse
 
 
 type UpdateTaskError
-    = UnknownUpdateTaskError String
+    = UpdateTaskNotFoundError
+    | UpdateTaskUnauthorizedError
+    | UnknownUpdateTaskError String
 
 
 updateTaskRequest : Authentication -> Int -> RequestTask -> Http.Request UpdateTaskResponse
@@ -430,6 +367,12 @@ updateTaskErrorDecoder =
             UpdateTaskErrorResponse
                 { error =
                     case code of
+                        "not_found" ->
+                            UpdateTaskNotFoundError
+
+                        "unauthorized" ->
+                            UpdateTaskUnauthorizedError
+
                         _ ->
                             UnknownUpdateTaskError code
                 , message = message
@@ -437,52 +380,117 @@ updateTaskErrorDecoder =
 
 
 
--- -- ////////// DELETE INVITATION //////////
---
---
--- type DeleteTaskResponse
---     = DeleteTaskSuccessResponse
---     | DeleteTaskErrorResponse { error : DeleteTaskError, message : String }
---     | DeleteTaskInvalidResponse
---     | DeleteTaskHttpError Http.Error
---
---
--- type DeleteTaskError
---     = UnknownDeleteTaskError String
---
---
--- deleteTaskRequest : String -> Authentication -> Int -> Http.Request String
--- deleteTaskRequest serverUrl auth invitationId =
---     Http.request
---         { body = Http.emptyBody
---         , expect = Http.expectString
---         , headers = authenticationHeaders auth
---         , method = "DELETE"
---         , timeout = Just requestTimeout
---         , url = serverUrl ++ "/invitations/" ++ toString invitationId
---         , withCredentials = False
---         }
---
---
--- deleteTaskResponseDecode : Result Http.Error DeleteTaskResponse -> DeleteTaskResponse
--- deleteTaskResponseDecode res =
---     flexibleResponseDecode
---         -- Ignore response string, as long as it's in the 200-300 range
---         (\_ -> DeleteTaskSuccessResponse)
---         deleteTaskErrorDecoder
---         DeleteTaskInvalidResponse
---         DeleteTaskHttpError
---         res
---
---
--- deleteTaskErrorDecoder : Decode.Decoder DeleteTaskResponse
--- deleteTaskErrorDecoder =
---     errorDecoder <|
---         \code message ->
---             DeleteTaskErrorResponse
---                 { error =
---                     case code of
---                         _ ->
---                             UnknownDeleteTaskError code
---                 , message = message
---                 }
+-- ////////// DELETE TASK //////////
+
+
+type DeleteTaskResponse
+    = DeleteTaskSuccessResponse
+    | DeleteTaskErrorResponse { error : DeleteTaskError, message : String }
+    | DeleteTaskInvalidResponse
+    | DeleteTaskHttpError Http.Error
+
+
+type DeleteTaskError
+    = DeleteTaskNotFoundError
+    | DeleteTaskUnauthorizedError
+    | UnknownDeleteTaskError String
+
+
+deleteTaskRequest : Authentication -> Int -> Http.Request DeleteTaskResponse
+deleteTaskRequest auth taskId =
+    Http.request
+        { body = Http.emptyBody
+        , expect = Http.expectStringResponse (\_ -> Ok DeleteTaskSuccessResponse)
+        , headers = authenticationHeaders auth
+        , method = "DELETE"
+        , timeout = Just requestTimeout
+        , url = auth.serverUrl ++ "/tasks/" ++ toString taskId
+        , withCredentials = False
+        }
+
+
+deleteTaskResponseDecode : Result Http.Error DeleteTaskResponse -> DeleteTaskResponse
+deleteTaskResponseDecode res =
+    responseDecode
+        deleteTaskErrorDecoder
+        DeleteTaskInvalidResponse
+        DeleteTaskHttpError
+        res
+
+
+deleteTaskErrorDecoder : Decode.Decoder DeleteTaskResponse
+deleteTaskErrorDecoder =
+    errorDecoder <|
+        \code message ->
+            DeleteTaskErrorResponse
+                { error =
+                    case code of
+                        "not_found" ->
+                            DeleteTaskNotFoundError
+
+                        "unauthorized" ->
+                            DeleteTaskUnauthorizedError
+
+                        _ ->
+                            UnknownDeleteTaskError code
+                , message = message
+                }
+
+
+
+-- ////////// FINISH TASK TURN //////////
+
+
+type FinishTurnResponse
+    = FinishTurnSuccessResponse
+    | FinishTurnErrorResponse { error : FinishTurnError, message : String }
+    | FinishTurnInvalidResponse
+    | FinishTurnHttpError Http.Error
+
+
+type FinishTurnError
+    = FinishTurnUnauthorizedError
+    | FinishTurnNotFoundError
+    | UnknownFinishTurnError String
+
+
+finishTurnRequest : Authentication -> Int -> Http.Request FinishTurnResponse
+finishTurnRequest auth taskId =
+    Http.request
+        { body = Http.emptyBody
+        , expect = Http.expectStringResponse (\_ -> Ok FinishTurnSuccessResponse)
+        , headers = authenticationHeaders auth
+        , method = "POST"
+        , timeout = Just requestTimeout
+        , url = auth.serverUrl ++ "/tasks/" ++ toString taskId ++ "/finish"
+        , withCredentials = False
+        }
+
+
+finishTurnErrorDecoder : Decode.Decoder FinishTurnResponse
+finishTurnErrorDecoder =
+    errorDecoder
+        (\code message ->
+            FinishTurnErrorResponse
+                { error =
+                    case code of
+                        "unauthorized" ->
+                            FinishTurnUnauthorizedError
+
+                        "task_not_found" ->
+                            FinishTurnNotFoundError
+
+                        _ ->
+                            UnknownFinishTurnError code
+                , message = message
+                }
+        )
+
+
+finishTurnResponseDecode : Result Http.Error FinishTurnResponse -> FinishTurnResponse
+finishTurnResponseDecode res =
+    responseDecode
+        finishTurnErrorDecoder
+        FinishTurnInvalidResponse
+        FinishTurnHttpError
+        res

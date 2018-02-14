@@ -97,7 +97,10 @@ update msg model =
                         !: [ errorToast "Communication Error" "There was an error while trying to get the server information." ]
 
         RequestServerInfo auth ->
-            model !: [ Http.send ServerInfoResponse (serverInfoRequest auth.serverUrl) ]
+            case model.time of
+                Nothing -> model !: []
+                Just time ->
+                  model !: [ Http.send ServerInfoResponse (serverInfoRequest auth.serverUrl time) ]
 
         Logout ->
             checkRedirectLogin { model | auth = Nothing } (clearAuthLocalStorage ())

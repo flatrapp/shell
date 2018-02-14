@@ -46,7 +46,9 @@ type CreateInvitationResponse
 
 
 type CreateInvitationError
-    = UnknownCreateInvitationError String
+    = CreateInvitationUnauthorizedError
+    | CreateInvitationCollisionError
+    | UnknownCreateInvitationError String
 
 
 createInvitationRequest : Authentication -> String -> Http.Request CreateInvitationResponse
@@ -55,7 +57,7 @@ createInvitationRequest auth email =
         { body = createInvitationRequestEncode email |> Http.jsonBody
         , expect =
             Http.expectJson <|
-                Decode.map (\i -> CreateInvitationSuccessResponse i) invitationDecoder
+                Decode.map CreateInvitationSuccessResponse invitationDecoder
         , headers = authenticationHeaders auth
         , method = "POST"
         , timeout = Just requestTimeout
@@ -86,7 +88,12 @@ createInvitationErrorDecoder =
             CreateInvitationErrorResponse
                 { error =
                     case code of
-                        -- TODO: Parse errors for real
+                        "unauthorized" ->
+                            CreateInvitationUnauthorizedError
+
+                        "invitation_email_exists" ->
+                            CreateInvitationCollisionError
+
                         _ ->
                             UnknownCreateInvitationError code
                 , message = message
@@ -106,7 +113,8 @@ type ListInvitationsResponse
 
 
 type ListInvitationsError
-    = UnknownListInvitationsError String
+    = ListInvitationsUnauthorizedError
+    | UnknownListInvitationsError String
 
 
 listInvitationsRequest : Authentication -> Http.Request ListInvitationsResponse
@@ -148,6 +156,9 @@ listInvitationsErrorDecoder =
             ListInvitationsErrorResponse
                 { error =
                     case code of
+                        "unauthorized" ->
+                            ListInvitationsUnauthorizedError
+
                         _ ->
                             UnknownListInvitationsError code
                 , message = message
@@ -166,7 +177,8 @@ type DeleteInvitationResponse
 
 
 type DeleteInvitationError
-    = UnknownDeleteInvitationError String
+    = DeleteInvitationUnauthorizedError
+    | UnknownDeleteInvitationError String
 
 
 deleteInvitationRequest : Authentication -> Int -> Http.Request DeleteInvitationResponse
@@ -198,7 +210,11 @@ deleteInvitationErrorDecoder =
             DeleteInvitationErrorResponse
                 { error =
                     case code of
+                        "unauthorized" ->
+                            DeleteInvitationUnauthorizedError
+
                         _ ->
+                            -- "not_found"
                             UnknownDeleteInvitationError code
                 , message = message
                 }
@@ -216,14 +232,15 @@ type ResendInvitationResponse
 
 
 type ResendInvitationError
-    = UnknownResendInvitationError String
+    = ResendInvitationUnauthorizedError
+    | UnknownResendInvitationError String
 
 
-resendInvitationRequest : Authentication -> Int -> Http.Request String
+resendInvitationRequest : Authentication -> Int -> Http.Request ResendInvitationResponse
 resendInvitationRequest auth invitationId =
     Http.request
         { body = Http.jsonBody <| Encode.object []
-        , expect = Http.expectString
+        , expect = Http.expectStringResponse (\_ -> Ok ResendInvitationSuccessResponse)
         , headers = authenticationHeaders auth
         , method = "PATCH"
         , timeout = Just requestTimeout
@@ -232,11 +249,9 @@ resendInvitationRequest auth invitationId =
         }
 
 
-resendInvitationResponseDecode : Result Http.Error String -> ResendInvitationResponse
+resendInvitationResponseDecode : Result Http.Error ResendInvitationResponse -> ResendInvitationResponse
 resendInvitationResponseDecode res =
-    flexibleResponseDecode
-        -- Ignore response string, as long as it's in the 200-300 range
-        (\_ -> ResendInvitationSuccessResponse)
+    responseDecode
         resendInvitationErrorDecoder
         ResendInvitationInvalidResponse
         ResendInvitationHttpError
@@ -250,7 +265,11 @@ resendInvitationErrorDecoder =
             ResendInvitationErrorResponse
                 { error =
                     case code of
+                        "unauthorized" ->
+                            ResendInvitationUnauthorizedError
+
                         _ ->
+                            -- "not_found", "bad_json"
                             UnknownResendInvitationError code
                 , message = message
                 }
