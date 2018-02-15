@@ -109,6 +109,7 @@ update msg model =
                     ( model, [] )
                         :> update (Msg.Globals (Globals.Types.TimeTick time))
                         :> update (Msg.Dashboard (Components.Dashboard.TimeTick time))
+                        :> update (Msg.Login (Components.Login.TimeTick time))
             in
             newModel ! msgs
 

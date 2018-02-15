@@ -3,18 +3,27 @@ module Components.Login exposing (..)
 import Bootstrap.Button as Button
 import Bootstrap.Form as Form
 import Bootstrap.Form.Input as Input exposing (onInput, value)
+import Exts.Html
 import Globals.Types
 import Helpers.Api.Authentication exposing (..)
+import Helpers.Api.Server exposing (ServerInfoResponse(..), saveServerInput, serverInfoRequest, serverInfoResponseDecode)
 import Helpers.Authentication exposing (saveAuthentication)
+import Helpers.Functions exposing (..)
 import Helpers.Operators exposing ((!:), (!>))
-import Helpers.Api.Server exposing (saveServerInput)
 import Helpers.Toast exposing (errorToast)
+import Helpers.UrlRegex exposing (checkUrlInput, urlRegexString)
 import Html exposing (Html, a, div, h1, text)
-import Html.Attributes exposing (for, href, id, style)
+import Html.Attributes exposing (for, href, id, pattern, required, style)
 import Html.Events exposing (onSubmit)
 import Http
 import Navigation
 import Task
+import Time exposing (Time, second)
+
+
+serverInputCheckTime : Float
+serverInputCheckTime =
+    1 * second
 
 
 type alias Model =
@@ -23,9 +32,11 @@ type alias Model =
     , password : String
     , serverInputDefault : String
     , serverInput : String
-    , serverUrl : String
-    , inputsValid : Bool
-    , inputsValidMsg : String
+    , serverUrl : Maybe String
+    , serverInputCheckVal : String
+    , serverInputLastChange : Time
+    , serverInputCheckCount : Int
+    , serverState : ServerState
     }
 
 
@@ -36,15 +47,24 @@ initialModel serverInput =
     , password = ""
     , serverInputDefault = serverInput
     , serverInput = serverInput
-    , serverUrl = ""
-    , inputsValid = False
-    , inputsValidMsg = ""
+    , serverUrl = checkUrlInput serverInput
+    , serverInputCheckVal = ""
+    , serverInputLastChange = 0
+    , serverInputCheckCount = 0
+    , serverState = None
     }
 
 
 type State
     = LoginForm
     | LoginPending
+
+
+type ServerState
+    = Pending
+    | ConnectOk String String
+    | ConnectErr
+    | None
 
 
 type Msg
@@ -56,6 +76,8 @@ type Msg
     | AuthResponse (Result Http.Error AuthenticationResponse)
     | SaveServerInput String
     | ViewState Bool
+    | ServerConnectResponse Int (Result Http.Error ServerInfoResponse)
+    | TimeTick Time.Time
 
 
 send : msg -> Cmd msg
@@ -69,6 +91,36 @@ update msg model globals =
     case msg of
         AppInitialized ->
             model !: []
+
+        TimeTick time ->
+            if model.serverInput /= model.serverInputCheckVal && time > model.serverInputLastChange + serverInputCheckTime then
+                case maybe2 ( model.serverUrl, globals.time ) of
+                    Nothing ->
+                        model !: []
+
+                    Just ( serverUrl, time ) ->
+                        { model
+                            | serverInputCheckVal = model.serverInput
+                            , serverInputCheckCount = model.serverInputCheckCount + 1
+                            , serverState = Pending
+                        }
+                            !: [ Http.send (ServerConnectResponse <| model.serverInputCheckCount + 1) <|
+                                    serverInfoRequest serverUrl time
+                               ]
+            else
+                model !: []
+
+        ServerConnectResponse checkCount res ->
+            if checkCount >= model.serverInputCheckCount then
+                case serverInfoResponseDecode res of
+                    ServerInfoSuccessResponse info ->
+                        { model | serverState = ConnectOk info.name info.version } !: []
+
+                    _ ->
+                        { model | serverState = ConnectErr } !: []
+            else
+                -- We've already sent anotehr request, ignore old ones
+                model !: []
 
         ViewState state ->
             case state of
@@ -86,27 +138,21 @@ update msg model globals =
 
         RequestAuthentication ->
             let
-                ( inputsValid, inputsValidMsg, serverUrl ) =
-                    validateInputs model
-
                 newModel =
-                    { model
-                        | serverUrl = serverUrl
-                        , inputsValid = inputsValid
-                        , inputsValidMsg = inputsValidMsg
-                    }
+                    { model | serverUrl = checkUrlInput model.serverInput }
             in
-            if inputsValid then
-                { newModel | state = LoginPending }
-                    !: [ Http.send AuthResponse (authRequest newModel.serverUrl newModel.email newModel.password) ]
-            else
-                newModel !: [ errorToast "Inputs invalid" "One or more inputs are invalid.<br />Please correct the values and try again." ]
+            case newModel.serverUrl of
+                Nothing ->
+                    newModel !: [ errorToast "Inputs invalid" "The entered server could not be converted to a well-formed url." ]
+
+                Just serverUrl ->
+                    { newModel | state = LoginPending }
+                        !: [ Http.send AuthResponse (authRequest serverUrl newModel.email newModel.password) ]
 
         AuthResponse res ->
             let
                 ( cmd, globalsCmd ) =
                     handleAuthResponse globals
-                        model.serverUrl
                         (\auth ->
                             ( send <| SaveServerInput model.serverInput
                             , send <| Globals.Types.RequestServerInfo auth
@@ -121,43 +167,39 @@ update msg model globals =
 
         ServerInputChange serverInput ->
             let
-                ( inputsValid, inputsValidMsg, serverUrl ) =
-                    validateInputs { model | serverInput = serverInput }
+                time =
+                    case globals.time of
+                        Just time ->
+                            time
+
+                        Nothing ->
+                            0
+
+                serverUrl =
+                    checkUrlInput serverInput
+
+                serverState =
+                    if serverUrl == Nothing then
+                        None
+                    else
+                        Pending
             in
             { model
                 | serverInput = serverInput
                 , serverUrl = serverUrl
-                , inputsValid = inputsValid
-                , inputsValidMsg = inputsValidMsg
+                , serverInputLastChange = time
+                , serverState = serverState
+                , serverInputCheckCount = model.serverInputCheckCount + 1
             }
                 !: []
 
 
-serverInputToUrl : String -> Maybe String
-serverInputToUrl input =
-    if String.length input < 1 then
-        Nothing
-    else
-        Just input
-
-
-validateInputs : Model -> ( Bool, String, String )
-validateInputs model =
-    case serverInputToUrl model.serverInput of
-        Nothing ->
-            ( False, "Server input invalid", "" )
-
-        Just serverUrl ->
-            ( True, "", serverUrl )
-
-
 handleAuthResponse :
     Globals.Types.Model
-    -> String
     -> (Globals.Types.Authentication -> ( Cmd Msg, Cmd Globals.Types.Msg ))
     -> Result Http.Error AuthenticationResponse
     -> ( Cmd Msg, Cmd Globals.Types.Msg )
-handleAuthResponse globals serverUrl successCmdFn res =
+handleAuthResponse globals successCmdFn res =
     case authResponseDecode res of
         AuthenticationSuccessResponse authSuccess ->
             case globals.time of
@@ -171,7 +213,7 @@ handleAuthResponse globals serverUrl successCmdFn res =
                 Just time ->
                     let
                         auth =
-                            toAuthentication serverUrl authSuccess time
+                            toAuthentication authSuccess time
 
                         ( successCmd, successGlobalsCmd ) =
                             successCmdFn auth
@@ -210,6 +252,21 @@ handleAuthResponse globals serverUrl successCmdFn res =
             ( errorToast "Communication Error" "An unknown error occured while communicating with the server.", Cmd.none )
 
 
+requiredInput : Input.Option msg
+requiredInput =
+    Input.attrs [ required True ]
+
+
+inputAttrs : Bool -> Bool -> String -> String -> (String -> Msg) -> List (Input.Option Msg)
+inputAttrs enabled requiredVal id val msg =
+    [ Input.disabled <| not enabled
+    , Input.attrs [ required requiredVal ]
+    , Input.id id
+    , value val
+    , onInput msg
+    ]
+
+
 view : Model -> Globals.Types.Model -> Html Msg
 view model globals =
     let
@@ -232,15 +289,38 @@ view model globals =
         , Form.form [ id "login-form", onSubmit RequestAuthentication ]
             [ Form.group []
                 [ Form.label [ for "server" ] [ text "Server (There's one per flat):" ]
-                , Input.text [ dInput, Input.id "server", onInput ServerInputChange, value model.serverInput ]
+                , Form.help [ style [ ( "float", "right" ) ] ]
+                    [ text <|
+                        case model.serverUrl of
+                            Nothing ->
+                                Exts.Html.nbsp
+
+                            Just url ->
+                                url
+                    , text " - "
+                    , text <|
+                        case model.serverState of
+                            Pending ->
+                                "Pending"
+
+                            ConnectErr ->
+                                "Connect Error"
+
+                            ConnectOk name version ->
+                                "Connect Ok - " ++ name ++ " " ++ version
+
+                            None ->
+                                ""
+                    ]
+                , Input.text <| inputAttrs formEnable True "server" model.serverInput ServerInputChange
                 ]
             , Form.group []
                 [ Form.label [ for "email" ] [ text "E-Mail:" ]
-                , Input.email [ dInput, Input.id "email", onInput EmailChange, value model.email ]
+                , Input.email <| inputAttrs formEnable True "email" model.email EmailChange
                 ]
             , Form.group []
                 [ Form.label [ for "password" ] [ text "Password:" ]
-                , Input.password [ dInput, Input.id "password", onInput PasswordChange, value model.password ]
+                , Input.password <| inputAttrs formEnable True "password" model.password PasswordChange
                 ]
             , Form.group []
                 [ Form.help []

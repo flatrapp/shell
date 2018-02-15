@@ -14,9 +14,9 @@ requestTimeout =
     5 * second
 
 
-toAuthentication : String -> AuthenticationSuccessResponseContent -> Time -> Authentication
-toAuthentication serverUrl authRes time =
-    { serverUrl = serverUrl
+toAuthentication : AuthenticationSuccessResponseContent -> Time -> Authentication
+toAuthentication authRes time =
+    { serverUrl = authRes.serverUrl
     , token = authRes.token
     , tokenId = authRes.tokenId
     , validUntil = time + toFloat authRes.validFor * Time.second
@@ -39,6 +39,7 @@ type alias AuthenticationSuccessResponseContent =
     { token : String
     , tokenId : String
     , validFor : Int
+    , serverUrl : String
     }
 
 
@@ -52,7 +53,7 @@ authRequest : String -> String -> String -> Http.Request AuthenticationResponse
 authRequest serverUrl email password =
     Http.request
         { body = authRequestEncode email password |> Http.jsonBody
-        , expect = Http.expectJson authResponseSuccessDecoder
+        , expect = Http.expectJson <| authResponseSuccessDecoder serverUrl
         , headers = []
         , method = "POST"
         , timeout = Just requestTimeout
@@ -81,14 +82,15 @@ authResponseDecode res =
         res
 
 
-authResponseSuccessDecoder : Decode.Decoder AuthenticationResponse
-authResponseSuccessDecoder =
+authResponseSuccessDecoder : String -> Decode.Decoder AuthenticationResponse
+authResponseSuccessDecoder serverUrl =
     DecodePipeline.decode
         (\token tokenId validFor ->
             AuthenticationSuccessResponse
                 { token = token
                 , tokenId = tokenId
                 , validFor = validFor
+                , serverUrl = serverUrl
                 }
         )
         |> DecodePipeline.required "token" Decode.string
