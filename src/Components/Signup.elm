@@ -3,15 +3,19 @@ module Components.Signup exposing (..)
 import Bootstrap.Button as Button
 import Bootstrap.Form as Form
 import Bootstrap.Form.Input as Input exposing (onInput, value)
+import Bootstrap.Grid as Grid
+import Components.ServerInput as ServerInput
 import Globals.Types
 import Helpers.Api.Authentication exposing (..)
+import Helpers.Functions exposing (send)
 import Helpers.Operators exposing ((!:), (!>))
 import Helpers.Toast exposing (errorToast)
-import Html exposing (Html, div, h1, text)
+import Html exposing (Html, div, h1, p, text)
 import Html.Attributes exposing (for, href, id, style)
 import Html.Events exposing (onSubmit)
 import Http
 import Task
+import Time exposing (Time)
 
 
 type SignupState
@@ -29,9 +33,7 @@ type alias Model =
     , password : String
     , passwordRepeat : String
     , invitationCode : Maybe String
-    , serverInputDefault : String
-    , serverInput : String
-    , serverUrl : String
+    , serverInput : ServerInput.Model
     }
 
 
@@ -44,16 +46,15 @@ initialModel serverInput =
     , password = ""
     , passwordRepeat = ""
     , invitationCode = Nothing
-    , serverInputDefault = serverInput -- Gets passed in by JavaScript (GET Param)
-    , serverInput = serverInput
-    , serverUrl = serverInput
+    , serverInput = ServerInput.initialModel serverInput
     }
 
 
 type Msg
     = AppInitialized
     | ViewState Bool
-    | ServerInputChange String
+    | TimeTick Time
+    | ServerInputMsg ServerInput.Msg
     | FirstNameChange String
     | LastNameChange String
     | EmailChange String
@@ -61,12 +62,6 @@ type Msg
     | PasswordRepeatChange String
     | RequestSignup
     | SignupResponse (Result Http.Error SignupResponse)
-
-
-send : msg -> Cmd msg
-send msg =
-    Task.succeed msg
-        |> Task.perform identity
 
 
 update : Msg -> Model -> Globals.Types.Model -> ( Model, Cmd Msg, Cmd Globals.Types.Msg )
@@ -78,13 +73,24 @@ update msg model globals =
         ViewState state ->
             case state of
                 False ->
-                    initialModel model.serverInputDefault !: []
+                    initialModel (ServerInput.getPrefilledInput model.serverInput) !: []
 
                 True ->
                     model !: []
 
-        ServerInputChange serverInput ->
-            { model | serverInput = serverInput, serverUrl = serverInput } !: []
+        TimeTick time ->
+            let
+                ( newModel, cmd ) =
+                    ServerInput.update (ServerInput.TimeTick time) model.serverInput globals
+            in
+            { model | serverInput = newModel } !: [ Cmd.map ServerInputMsg cmd ]
+
+        ServerInputMsg serverInputMsg ->
+            let
+                ( newModel, cmd ) =
+                    ServerInput.update serverInputMsg model.serverInput globals
+            in
+            { model | serverInput = newModel } !: [ Cmd.map ServerInputMsg cmd ]
 
         FirstNameChange firstName ->
             { model | firstName = firstName } !: []
@@ -102,16 +108,21 @@ update msg model globals =
             { model | passwordRepeat = passwordRepeat } !: []
 
         RequestSignup ->
-            model
-                !: [ Http.send SignupResponse <|
-                        signupRequest model.serverUrl
-                            { firstName = model.firstName
-                            , lastName = model.lastName
-                            , email = model.email
-                            , password = model.password
-                            , invitationCode = model.invitationCode
-                            }
-                   ]
+            case ServerInput.getUrl model.serverInput of
+                Nothing ->
+                    model !: [ errorToast "Inputs invalid" "The entered server could not be converted to a well-formed url." ]
+
+                Just serverUrl ->
+                    model
+                        !: [ Http.send SignupResponse <|
+                                signupRequest serverUrl
+                                    { firstName = model.firstName
+                                    , lastName = model.lastName
+                                    , email = model.email
+                                    , password = model.password
+                                    , invitationCode = model.invitationCode
+                                    }
+                           ]
 
         SignupResponse res ->
             case signupResponseDecode res of
@@ -163,8 +174,11 @@ view model globals =
         SignupPending ->
             signupFormView model globals False
 
-        _ ->
-            signupFormView model globals False
+        SignupSuccessEmail ->
+            signupSuccessView True
+
+        SignupSuccessNoEmail ->
+            signupSuccessView False
 
 
 signupFormView : Model -> Globals.Types.Model -> Bool -> Html Msg
@@ -184,10 +198,7 @@ signupFormView model globals formEnable =
                 text "Sign up via invitation link"
             ]
         , Form.form [ id "signup-form", onSubmit RequestSignup ]
-            ([ Form.group []
-                [ Form.label [ for "serverInput" ] [ text "Server (There's one per flat):" ]
-                , Input.text [ dInput, Input.id "serverInput", value model.serverInput, onInput ServerInputChange ]
-                ]
+            ([ Html.map ServerInputMsg <| ServerInput.view model.serverInput formEnable
              , Form.group []
                 [ Form.label [ for "firstName" ] [ text "First name:" ]
                 , Input.text [ dInput, Input.id "firstName", onInput FirstNameChange ]
@@ -227,4 +238,34 @@ signupFormView model globals formEnable =
                         ]
                    ]
             )
+        ]
+
+
+signupSuccessView : Bool -> Html msg
+signupSuccessView emailVerificationRequired =
+    Grid.container []
+        [ Grid.row []
+            [ Grid.col []
+                [ h1 [] [ text "Signup successful!" ]
+                ]
+            ]
+        , case emailVerificationRequired of
+            False ->
+                Grid.row []
+                    [ Grid.col []
+                        [ p []
+                            [ text "Your email has already been confirmed. You can now proceed to login!" ]
+                        ]
+                    ]
+
+            True ->
+                Grid.row []
+                    [ Grid.col []
+                        [ p [] [ text "Your email needs to be verified. We sent you an email. Please click on the link inside to confirm it. Also check your spam folder!" ] ]
+                    ]
+        , Grid.row []
+            [ Grid.col []
+                [ div [ style [ ( "float", "right" ) ] ] [ Button.linkButton [ Button.secondary, Button.attrs [ href "#login" ] ] [ text "Proceed to login" ] ]
+                ]
+            ]
         ]
