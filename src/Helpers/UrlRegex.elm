@@ -8,7 +8,7 @@ import Regex exposing (..)
 
 domain : String
 domain =
-    "[a-zA-Z0-9]+(?:\\.[a-zA-Z0-9]+)*"
+    "[a-zA-Z0-9\\-\\_]+(?:\\.[a-zA-Z0-9\\-\\_]+)*"
 
 
 ipv4 : String
