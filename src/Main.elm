@@ -16,6 +16,10 @@ import Time exposing (second)
 import View exposing (view)
 
 
+-- This is the mail Elm application, which connects all custom code to the runtime
+-- We use a Navigation-based program which accept flags initially sent from JavaScript
+
+
 main : Program Flags Model.Model Msg.Msg
 main =
     Navigation.programWithFlags Msg.LocationChange
@@ -26,12 +30,21 @@ main =
         }
 
 
+
+-- The javascript gets the authentication from the localStorage, calculates a timezoneOffset value,
+-- returns the default serverInput value from a GET parameter and a possibly an invitationCode
+
+
 type alias Flags =
     { auth : Maybe Globals.Types.Authentication
     , timezoneOffset : Int
     , serverInput : String
     , invitationCode : Maybe String
     }
+
+
+
+-- Initialize our application model, triggering all required commands
 
 
 init : Flags -> Location -> ( Model.Model, Cmd Msg.Msg )
@@ -78,6 +91,11 @@ init flags location =
     { model | signup = newSignupModel } ! [ navCmd, cmd, authSaveCmd, timeCmd ]
 
 
+
+-- In every update, we want to check whether we're still logged in and log ourselves out if necessary
+-- This calles the primary update function
+
+
 updateWrapper : Msg.Msg -> Model.Model -> ( Model.Model, Cmd Msg.Msg )
 updateWrapper msg model =
     let
@@ -88,6 +106,11 @@ updateWrapper msg model =
             update msg { model | globals = globals }
     in
     newModel ! [ Cmd.map Globals redirectCmd, redirectMainCmd, updateCmd ]
+
+
+
+-- The primary application update function
+-- All events arrive here, modify the model and return new commands to the Elm runtime
 
 
 update : Msg.Msg -> Model.Model -> ( Model.Model, Cmd Msg.Msg )
@@ -156,9 +179,13 @@ update msg model =
             { model | navState = navState } ! []
 
 
+-- These subscriptions get fulfilled by the Elm runtime and trigger the update function
+-- with the provided message
 subscriptions : Model.Model -> Sub Msg.Msg
 subscriptions model =
     Sub.batch
+        -- This triggers the update function every second, providing the current system time
         [ Time.every second Msg.TimeTick
+        -- This is required by the Bootstrap Library
         , Navbar.subscriptions model.navState NavbarEvent
         ]
