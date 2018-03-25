@@ -42,11 +42,11 @@ view model =
 
         Just _ ->
             let
-                ( bodyContent, footerContent ) =
+                ( bodyContent, footerContent, showNav) =
                     content model
             in
             div []
-                [ menu (isAuthenticated model.globals) model
+                [ menu ((isAuthenticated model.globals) && showNav) model
                 , br [] []
                 , Grid.container []
                     [ Grid.row []
@@ -63,27 +63,31 @@ view model =
                 ]
 
 
-content : Model.Model -> ( Html Msg.Msg, Html Msg.Msg )
+content : Model.Model -> ( Html Msg.Msg, Html Msg.Msg, Bool )
 content model =
     case model.globals.page of
         NotFoundPage ->
-            ( Html.map Msg.Login Components.NotFound.view, text "" )
+            ( Html.map Msg.Login Components.NotFound.view, text "", True )
 
         LoginPage ->
-            ( Html.map Msg.Login (Components.Login.view model.login model.globals), text "" )
+            ( Html.map Msg.Login (Components.Login.view model.login model.globals), text "", True )
 
         SignupPage ->
-            ( Html.map Msg.Signup (Components.Signup.view model.signup model.globals), text "" )
+            ( Html.map Msg.Signup (Components.Signup.view model.signup model.globals), text "", True )
 
         DashboardPage ->
             let
                 ( bodyContent, footerContent ) =
                     Components.Dashboard.view model.dashboard model.globals
             in
-            ( Html.map Msg.Dashboard bodyContent, Html.map Msg.Dashboard footerContent )
+            ( Html.map Msg.Dashboard bodyContent, Html.map Msg.Dashboard footerContent, True )
 
         SettingsPage page ->
-            ( Html.map Msg.Settings (Components.Settings.view page model.settings model.globals), text "" )
+            let
+                ( bodyContent, footerContent, showNav ) =
+                    Components.Settings.view page model.settings model.globals
+            in
+            ( Html.map Msg.Settings bodyContent, Html.map Msg.Settings footerContent, showNav )
 
 
 footer : Globals.Types.Model -> Html msg -> Html msg

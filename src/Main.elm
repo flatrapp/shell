@@ -134,6 +134,7 @@ update msg model =
                         :> update (Msg.Dashboard (Components.Dashboard.TimeTick time))
                         :> update (Msg.Login (Components.Login.TimeTick time))
                         :> update (Msg.Signup (Components.Signup.TimeTick time))
+                        :> update (Msg.Settings (Components.Settings.TimeTick time))
             in
             newModel ! msgs
 

@@ -10,12 +10,12 @@ import Bootstrap.ListGroup as ListGroup
 import Dict exposing (Dict)
 import Exts.Html
 import Globals.Types
-import Helpers.Operators exposing ((!:), (!>))
 import Helpers.Api.Task as Task exposing (..)
-import Helpers.Toast exposing (errorToast, successToast)
 import Helpers.Api.User as User exposing (..)
+import Helpers.Operators exposing ((!:), (!>))
+import Helpers.Toast exposing (errorToast, successToast)
 import Html exposing (Html, a, br, div, h2, h5, hr, i, li, nav, small, text, ul)
-import Html.Attributes exposing (class, href, style)
+import Html.Attributes exposing (class, href, style, target)
 import Html.Events exposing (onSubmit)
 import Http
 import Set exposing (Set)
@@ -266,7 +266,10 @@ view model globals =
         , Grid.row []
             [ Grid.col []
                 [ div [ style [ ( "float", "right" ) ] ]
-                    [ Button.button
+                    [ Button.linkButton
+                        [ Button.small, Button.primary, Button.attrs [ class "ml-1", style [ ( "color", "white" ) ], target "_blank", href "#settings/tasks/pdf-export" ] ]
+                        [ text "Print PDF" ]
+                    , Button.button
                         [ Button.small, Button.success, Button.attrs [ class "ml-1" ], Button.onClick NewTask ]
                         [ text "New Task" ]
                     ]

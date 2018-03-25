@@ -95,3 +95,10 @@ app.ports.saveServerInput.subscribe(function (serverInput) {
 app.ports.clearServerInput.subscribe(function () {
     localStorage.setItem("");
 });
+
+app.ports.printWebsite.subscribe(function () {
+    // Give the browser a little time to render the site
+    setTimeout(function () {
+        window.print();
+    }, 500);
+});
