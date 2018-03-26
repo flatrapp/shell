@@ -7,14 +7,12 @@ import Bootstrap.Grid as Grid
 import Components.ServerInput as ServerInput
 import Globals.Types
 import Helpers.Api.Authentication exposing (..)
-import Helpers.Functions exposing (send)
 import Helpers.Operators exposing ((!:), (!>))
 import Helpers.Toast exposing (errorToast)
 import Html exposing (Html, div, h1, p, text)
 import Html.Attributes exposing (class, for, href, id, required, style)
 import Html.Events exposing (onSubmit)
 import Http
-import Task
 import Time exposing (Time)
 
 

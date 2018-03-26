@@ -1,6 +1,5 @@
 module Helpers.Api.Authentication exposing (..)
 
-import Helpers.Authentication exposing (..)
 import Http
 import Json.Decode as Decode
 import Helpers.Functions exposing (..)
