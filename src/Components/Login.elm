@@ -4,15 +4,11 @@ import Bootstrap.Button as Button
 import Bootstrap.Form as Form
 import Bootstrap.Form.Input as Input exposing (onInput, value)
 import Components.ServerInput as ServerInput
-import Exts.Html
 import Globals.Types
 import Helpers.Api.Authentication exposing (..)
-import Helpers.Api.Server exposing (ServerInfoResponse(..), saveServerInput, serverInfoRequest, serverInfoResponseDecode)
 import Helpers.Authentication exposing (saveAuthentication)
-import Helpers.Functions exposing (..)
 import Helpers.Operators exposing ((!:), (!>))
 import Helpers.Toast exposing (errorToast)
-import Helpers.UrlRegex exposing (checkUrlInput, urlRegexString)
 import Html exposing (Html, a, div, h1, text)
 import Html.Attributes exposing (for, href, id, pattern, required, style)
 import Html.Events exposing (onSubmit)
