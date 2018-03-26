@@ -11,7 +11,7 @@ import Helpers.Functions exposing (send)
 import Helpers.Operators exposing ((!:), (!>))
 import Helpers.Toast exposing (errorToast)
 import Html exposing (Html, div, h1, p, text)
-import Html.Attributes exposing (for, href, id, style)
+import Html.Attributes exposing (class, for, href, id, required, style)
 import Html.Events exposing (onSubmit)
 import Http
 import Task
@@ -113,16 +113,21 @@ update msg model globals =
                     model !: [ errorToast "Inputs invalid" "The entered server could not be converted to a well-formed url." ]
 
                 Just serverUrl ->
-                    model
-                        !: [ Http.send SignupResponse <|
-                                signupRequest serverUrl
-                                    { firstName = model.firstName
-                                    , lastName = model.lastName
-                                    , email = model.email
-                                    , password = model.password
-                                    , invitationCode = model.invitationCode
-                                    }
-                           ]
+                    case model.password == model.passwordRepeat of
+                        True ->
+                            model
+                                !: [ Http.send SignupResponse <|
+                                        signupRequest serverUrl
+                                            { firstName = model.firstName
+                                            , lastName = model.lastName
+                                            , email = model.email
+                                            , password = model.password
+                                            , invitationCode = model.invitationCode
+                                            }
+                                   ]
+
+                        False ->
+                            model !: [ errorToast "Inputs invalid" "The password and password repeat fields do not match" ]
 
         SignupResponse res ->
             case signupResponseDecode res of
@@ -181,6 +186,11 @@ view model globals =
             signupSuccessView False
 
 
+requiredInput : Input.Option msg
+requiredInput =
+    Input.attrs [ required True ]
+
+
 signupFormView : Model -> Globals.Types.Model -> Bool -> Html Msg
 signupFormView model globals formEnable =
     let
@@ -201,17 +211,17 @@ signupFormView model globals formEnable =
             ([ Html.map ServerInputMsg <| ServerInput.view model.serverInput formEnable
              , Form.group []
                 [ Form.label [ for "firstName" ] [ text "First name:" ]
-                , Input.text [ dInput, Input.id "firstName", onInput FirstNameChange ]
+                , Input.text [ dInput, Input.id "firstName", onInput FirstNameChange, requiredInput ]
                 ]
              , Form.group []
                 [ Form.label [ for "lastName" ] [ text "Last name:" ]
-                , Input.text [ dInput, Input.id "lastName", onInput LastNameChange ]
+                , Input.text [ dInput, Input.id "lastName", onInput LastNameChange, requiredInput ]
                 ]
              ]
                 ++ (if model.invitationCode == Nothing then
                         [ Form.group []
                             [ Form.label [ for "email" ] [ text "E-Mail:" ]
-                            , Input.email [ dInput, Input.id "email", onInput EmailChange ]
+                            , Input.email [ dInput, Input.id "email", onInput EmailChange, requiredInput ]
                             ]
                         ]
                     else
@@ -219,11 +229,25 @@ signupFormView model globals formEnable =
                    )
                 ++ [ Form.group []
                         [ Form.label [ for "password" ] [ text "Password:" ]
-                        , Input.password [ dInput, Input.id "password", onInput PasswordChange ]
+                        , Input.password [ dInput, Input.id "password", onInput PasswordChange, requiredInput ]
                         ]
                    , Form.group []
                         [ Form.label [ for "passwordRepeat" ] [ text "Repeat password:" ]
-                        , Input.password [ dInput, Input.id "passwordRepeat", onInput PasswordRepeatChange ]
+                        , Input.password
+                            [ dInput
+                            , Input.id "passwordRepeat"
+                            , onInput PasswordRepeatChange
+                            , requiredInput
+                            , Input.attrs
+                                [ class <|
+                                    case model.password == model.passwordRepeat of
+                                        True ->
+                                            "is-valid"
+
+                                        False ->
+                                            "is-invalid"
+                                ]
+                            ]
                         ]
                    , Form.group []
                         [ Form.help []
