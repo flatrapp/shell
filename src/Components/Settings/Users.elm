@@ -24,6 +24,7 @@ type alias Model =
     { users : Maybe (Dict Int UserInfo)
     , invitationEmail : String
     , invitations : Maybe (Dict Int Invitation)
+    , sendEmailButtonEnable : Bool
     }
 
 
@@ -32,6 +33,7 @@ initialModel =
     { users = Nothing
     , invitationEmail = ""
     , invitations = Nothing
+    , sendEmailButtonEnable = True
     }
 
 
@@ -104,7 +106,8 @@ update msg model globals =
                     model !: []
 
                 Just auth ->
-                    model !: [ Http.send ResendInvitationResponse <| resendInvitationRequest auth id ]
+                    { model | sendEmailButtonEnable = False }
+                        !: [ Http.send ResendInvitationResponse <| resendInvitationRequest auth id ]
 
         DeleteInvitation id ->
             case globals.auth of
@@ -136,11 +139,11 @@ update msg model globals =
         ResendInvitationResponse res ->
             case resendInvitationResponseDecode res of
                 ResendInvitationSuccessResponse ->
-                    model !: [ successToast "Invitation email resent" "" ]
+                    { model | sendEmailButtonEnable = True } !: [ successToast "Invitation email resent" "" ]
 
                 _ ->
                     -- TODO: Handle errors!
-                    model !: []
+                    { model | sendEmailButtonEnable = True } !: []
 
         DeleteInvitationResponse res ->
             case deleteInvitationResponseDecode res of
@@ -190,7 +193,7 @@ view model globals =
             [ Grid.col [] [ createInvitationView model ] ]
         , Grid.row [] [ Grid.col [] [ br [] [] ] ]
         , Grid.row []
-            [ Grid.col [] [ invitationsList model.invitations ] ]
+            [ Grid.col [] [ invitationsList model ] ]
         ]
 
 
@@ -210,9 +213,9 @@ createInvitationView model =
         ]
 
 
-invitationsList : Maybe (Dict Int Invitation) -> Html Msg
-invitationsList maybeInvitations =
-    case maybeInvitations of
+invitationsList : Model -> Html Msg
+invitationsList model =
+    case model.invitations of
         Nothing ->
             ListGroup.ul
                 [ ListGroup.li
@@ -229,22 +232,28 @@ invitationsList maybeInvitations =
                     ]
             else
                 Dict.values invitations
-                    |> List.map invitationsListEntry
+                    |> List.map (invitationsListEntry model)
                     |> ListGroup.ul
 
 
-invitationsListEntry : Invitation -> ListGroup.Item Msg
-invitationsListEntry invitation =
+invitationsListEntry : Model -> Invitation -> ListGroup.Item Msg
+invitationsListEntry model invitation =
     ListGroup.li
         [ ListGroup.attrs [ class "justify-content-between" ] ]
         [ div [] [ i [] [ text invitation.email ] ]
         , div []
             [ Button.button
-                [ Button.small
-                , Button.warning
-                , Button.attrs [ class "ml-1" ]
-                , Button.onClick <| ResendInvitation invitation.id
-                ]
+                ([ Button.small
+                 , Button.warning
+                 , Button.attrs [ class "ml-1" ]
+                 , Button.onClick <| ResendInvitation invitation.id
+                 ]
+                    ++ (if model.sendEmailButtonEnable then
+                            []
+                        else
+                            [ Button.disabled True ]
+                       )
+                )
                 [ text "Resend Email" ]
             , Button.button
                 [ Button.small
