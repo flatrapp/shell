@@ -9,11 +9,11 @@ import Bootstrap.Grid as Grid
 import Bootstrap.ListGroup as ListGroup
 import Dict exposing (Dict)
 import Globals.Types
-import Helpers.Functions exposing (..)
 import Helpers.Api.Invitation as Invitation exposing (..)
+import Helpers.Api.User as User exposing (..)
+import Helpers.Functions exposing (..)
 import Helpers.Operators exposing ((!:), (!>))
 import Helpers.Toast as Toast exposing (errorToast, successToast)
-import Helpers.Api.User as User exposing (..)
 import Html exposing (Html, a, br, div, h2, h3, hr, i, text)
 import Html.Attributes exposing (class, href, style)
 import Html.Events exposing (onSubmit)
@@ -136,7 +136,7 @@ update msg model globals =
         ResendInvitationResponse res ->
             case resendInvitationResponseDecode res of
                 ResendInvitationSuccessResponse ->
-                    model !: [ successToast "Invitation email resent" ""]
+                    model !: [ successToast "Invitation email resent" "" ]
 
                 _ ->
                     -- TODO: Handle errors!
@@ -152,8 +152,9 @@ update msg model globals =
                             model !: [ send UpdateData ]
 
                         Just invitations ->
-                            { model | invitations = Just <| Dict.remove id invitations } !: [
-                                successToast "Invitation deleted" "" ]
+                            { model | invitations = Just <| Dict.remove id invitations }
+                                !: [ successToast "Invitation deleted" ""
+                                   ]
 
                 _ ->
                     -- TODO: Handle errors!

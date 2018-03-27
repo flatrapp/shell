@@ -1,9 +1,10 @@
 port module Helpers.Authentication exposing (..)
 
-import Json.Encode as Encode
 import Globals.Types exposing (Authentication)
-import Http
 import Helpers.Functions exposing (..)
+import Http
+import Json.Encode as Encode
+
 
 saveAuthentication : Authentication -> Cmd Globals.Types.Msg
 saveAuthentication auth =
