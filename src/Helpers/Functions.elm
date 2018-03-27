@@ -6,6 +6,7 @@ import Json.Decode.Pipeline as DecodePipeline
 import Task
 import Time.DateTime as DateTime exposing (DateTime)
 
+
 send : msg -> Cmd msg
 send msg =
     Task.succeed msg
@@ -19,6 +20,7 @@ errorDecoder errDec =
         |> DecodePipeline.required "code" Decode.string
         |> DecodePipeline.required "message" Decode.string
         |> Decode.field "error"
+
 
 dateDecoder : Decode.Decoder DateTime
 dateDecoder =

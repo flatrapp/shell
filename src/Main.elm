@@ -179,13 +179,17 @@ update msg model =
             { model | navState = navState } ! []
 
 
+
 -- These subscriptions get fulfilled by the Elm runtime and trigger the update function
 -- with the provided message
+
+
 subscriptions : Model.Model -> Sub Msg.Msg
 subscriptions model =
     Sub.batch
         -- This triggers the update function every second, providing the current system time
         [ Time.every second Msg.TimeTick
+
         -- This is required by the Bootstrap Library
         , Navbar.subscriptions model.navState NavbarEvent
         ]

@@ -67,7 +67,7 @@ type Msg
     | ConnectResponse Int (Result Http.Error ServerInfoResponse)
 
 
-update : Msg -> Model -> Globals.Types.Model -> ( Model, Cmd Msg, Cmd Globals.Types.Msg)
+update : Msg -> Model -> Globals.Types.Model -> ( Model, Cmd Msg, Cmd Globals.Types.Msg )
 update msg model globals =
     case msg of
         TimeTick time ->
@@ -84,7 +84,7 @@ update msg model globals =
                         }
                             !: [ Http.send (ConnectResponse <| model.checkCount + 1) <|
                                     serverInfoRequest url time
-                              ]
+                               ]
             else
                 model !: []
 
@@ -101,7 +101,7 @@ update msg model globals =
                 model !: []
 
         SaveInput ->
-            { model | prefilledInput = model.input } !> ([], [ send <| Globals.Types.SaveServerInput model.input ])
+            { model | prefilledInput = model.input } !> ( [], [ send <| Globals.Types.SaveServerInput model.input ] )
 
         InputChange serverInput ->
             let

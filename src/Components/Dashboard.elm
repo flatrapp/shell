@@ -8,11 +8,11 @@ import Bootstrap.ListGroup as ListGroup
 import Dict exposing (Dict)
 import Globals.Types
 import Guards exposing (..)
+import Helpers.Api.Task as Task exposing (..)
+import Helpers.Api.User as User exposing (UserInfo, currentUserResponseDecode, listUsersResponseDecode)
 import Helpers.Functions exposing (..)
 import Helpers.Operators exposing ((!:), (!>))
-import Helpers.Api.Task as Task exposing (..)
 import Helpers.Toast exposing (errorToast)
-import Helpers.Api.User as User exposing (UserInfo, currentUserResponseDecode, listUsersResponseDecode)
 import Html exposing (Html, br, div, h5, hr, p, small, span, text)
 import Html.Attributes exposing (class, style)
 import Http

@@ -1,12 +1,13 @@
 module Helpers.Api.Authentication exposing (..)
 
+import Globals.Types exposing (Authentication)
+import Helpers.Functions exposing (..)
 import Http
 import Json.Decode as Decode
-import Helpers.Functions exposing (..)
 import Json.Decode.Pipeline as DecodePipeline
 import Json.Encode as Encode
-import Globals.Types exposing (Authentication)
 import Time exposing (Time, second)
+
 
 requestTimeout : Float
 requestTimeout =
@@ -20,6 +21,8 @@ toAuthentication authRes time =
     , tokenId = authRes.tokenId
     , validUntil = time + toFloat authRes.validFor * Time.second
     }
+
+
 
 -- ////////// LOGIN //////////
 

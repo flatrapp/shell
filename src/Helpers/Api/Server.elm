@@ -1,6 +1,6 @@
 port module Helpers.Api.Server exposing (..)
 
-import Helpers.Functions exposing (flexibleResponseDecode, dateDecoder)
+import Helpers.Functions exposing (dateDecoder, flexibleResponseDecode)
 import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as DecodePipeline exposing (decode, required)
@@ -54,7 +54,8 @@ serverInfoResponseDecode : Result Http.Error ServerInfoResponse -> ServerInfoRes
 serverInfoResponseDecode res =
     flexibleResponseDecode
         identity
-        (\_ -> Err ()) -- Just throw a generic error here, automatically become invalid response
+        (\_ -> Err ())
+        -- Just throw a generic error here, automatically become invalid response
         ServerInfoInvalidResponse
         ServerInfoHttpError
         res
