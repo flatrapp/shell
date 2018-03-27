@@ -25,6 +25,6 @@ initialModel location navState timezoneOffset serverInput =
     , signup = Components.Signup.initialModel serverInput
     , dashboard = Components.Dashboard.initialModel
     , settings = Components.Settings.initialModel
-    , globals = Globals.Types.initialModel location timezoneOffset
+    , globals = Globals.Types.initialModel location serverInput timezoneOffset
     , navState = navState
     }

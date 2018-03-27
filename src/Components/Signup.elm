@@ -7,6 +7,7 @@ import Bootstrap.Grid as Grid
 import Components.ServerInput as ServerInput
 import Globals.Types
 import Helpers.Api.Authentication exposing (..)
+import Helpers.Functions exposing (send)
 import Helpers.Operators exposing ((!:), (!>))
 import Helpers.Toast exposing (errorToast)
 import Html exposing (Html, div, h1, p, text)
@@ -15,7 +16,9 @@ import Html.Events exposing (onSubmit)
 import Http
 import Time exposing (Time)
 
-type SignupState
+
+type
+    SignupState
     -- The different view-states we can be in
     = SignupForm
     | SignupPending
@@ -31,6 +34,7 @@ type alias Model =
     , password : String
     , passwordRepeat : String
     , invitationCode : Maybe String
+
     -- We re-use the serverInput field here
     , serverInput : ServerInput.Model
     }
@@ -39,6 +43,7 @@ type alias Model =
 initialModel : String -> Model
 initialModel serverInput =
     { state = SignupForm
+
     -- Set all the fields to empty values initially
     , email = ""
     , firstName = ""
@@ -73,24 +78,24 @@ update msg model globals =
         ViewState state ->
             case state of
                 False ->
-                    initialModel (ServerInput.getPrefilledInput model.serverInput) !: []
+                    initialModel globals.serverInput !: []
 
                 True ->
                     model !: []
 
         TimeTick time ->
             let
-                ( newModel, cmd ) =
+                ( newModel, cmd, globalsCmd ) =
                     ServerInput.update (ServerInput.TimeTick time) model.serverInput globals
             in
-            { model | serverInput = newModel } !: [ Cmd.map ServerInputMsg cmd ]
+            { model | serverInput = newModel } !> ( [ Cmd.map ServerInputMsg cmd ], [ globalsCmd ] )
 
         ServerInputMsg serverInputMsg ->
             let
-                ( newModel, cmd ) =
+                ( newModel, cmd, globalsCmd ) =
                     ServerInput.update serverInputMsg model.serverInput globals
             in
-            { model | serverInput = newModel } !: [ Cmd.map ServerInputMsg cmd ]
+            { model | serverInput = newModel } !> ( [ Cmd.map ServerInputMsg cmd ], [ globalsCmd ] )
 
         FirstNameChange firstName ->
             { model | firstName = firstName } !: []
@@ -141,7 +146,7 @@ update msg model globals =
                                 False ->
                                     SignupSuccessEmail
                     }
-                        !: []
+                        !: [ send <| ServerInputMsg ServerInput.SaveInput ]
 
                 SignupErrorResponse err ->
                     case err.error of

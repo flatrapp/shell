@@ -17,6 +17,7 @@ import Navigation
 import Task
 import Time exposing (Time, second)
 
+
 type alias Model =
     { state : State
     , email : String
@@ -37,6 +38,7 @@ initialModel serverInput =
 type State
     = LoginForm
     | LoginPending
+
 
 type Msg
     = AppInitialized
@@ -63,22 +65,22 @@ update msg model globals =
 
         TimeTick time ->
             let
-                ( newModel, cmd ) =
+                ( newModel, cmd, globalsCmd ) =
                     ServerInput.update (ServerInput.TimeTick time) model.serverInput globals
             in
-            { model | serverInput = newModel } !: [ Cmd.map ServerInputMsg cmd ]
+            { model | serverInput = newModel } !> ( [ Cmd.map ServerInputMsg cmd ], [ globalsCmd ] )
 
         ServerInputMsg msg ->
             let
-                ( newModel, cmd ) =
+                ( newModel, cmd, globalsCmd ) =
                     ServerInput.update msg model.serverInput globals
             in
-            { model | serverInput = newModel } !: [ Cmd.map ServerInputMsg cmd ]
+            { model | serverInput = newModel } !> ( [ Cmd.map ServerInputMsg cmd ], [ globalsCmd ] )
 
         ViewState state ->
             case state of
                 False ->
-                    initialModel (ServerInput.getPrefilledInput model.serverInput) !: []
+                    initialModel globals.serverInput !: []
 
                 True ->
                     model !: []
@@ -103,17 +105,21 @@ update msg model globals =
                 ( cmd, globalsCmd ) =
                     handleAuthResponse globals
                         (\auth ->
-                            -- ( send <| SaveServerInput model.serverInput
-                            ( Cmd.none, send <| Globals.Types.RequestServerInfo auth )
+                            ( send <| ServerInputMsg ServerInput.SaveInput
+                            , send <| Globals.Types.RequestServerInfo auth
+                            )
                         )
                         res
             in
             ( { model | state = LoginForm }, cmd, globalsCmd )
 
 
+
 -- This function takes a lot of the work from the update function
 -- and manages the rather complex information flow when an
 -- authentication response is received
+
+
 handleAuthResponse :
     Globals.Types.Model
     -> (Globals.Types.Authentication -> ( Cmd Msg, Cmd Globals.Types.Msg ))
@@ -181,6 +187,8 @@ handleAuthResponse globals successCmdFn res =
 
 -- A helper to create the attribute list for inputs
 -- This should improve the readability in the view function
+
+
 inputAttrs : Bool -> Bool -> String -> String -> (String -> Msg) -> List (Input.Option Msg)
 inputAttrs enabled requiredVal id val msg =
     [ Input.disabled <| not enabled
