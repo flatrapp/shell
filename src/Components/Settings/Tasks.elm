@@ -15,7 +15,7 @@ import Helpers.Api.User as User exposing (..)
 import Helpers.Operators exposing ((!:), (!>))
 import Helpers.Toast exposing (errorToast, successToast)
 import Html exposing (Html, a, br, div, h2, h5, hr, i, li, nav, small, text, ul)
-import Html.Attributes exposing (class, href, style)
+import Html.Attributes exposing (class, href, style, target, type_)
 import Html.Events exposing (onSubmit)
 import Http
 import Set exposing (Set)
@@ -409,7 +409,7 @@ tasksListEditEntry maybeTask model users =
                     [ Grid.col []
                         [ div [ style [ ( "float", "right" ), ( "margin-top", "10px" ) ] ]
                             [ Button.button
-                                [ Button.small, Button.warning, Button.attrs [ class "ml-1" ], Button.onClick StopEdit ]
+                                [ Button.small, Button.warning, Button.attrs [ class "ml-1", type_ "button" ], Button.onClick StopEdit ]
                                 [ text "Discard changes" ]
                             , Button.button
                                 [ Button.small, Button.success, Button.attrs [ class "ml-1" ] ]
