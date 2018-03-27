@@ -15,8 +15,8 @@ import Html.Events exposing (onSubmit)
 import Http
 import Time exposing (Time)
 
-
 type SignupState
+    -- The different view-states we can be in
     = SignupForm
     | SignupPending
     | SignupSuccessEmail
@@ -31,6 +31,7 @@ type alias Model =
     , password : String
     , passwordRepeat : String
     , invitationCode : Maybe String
+    -- We re-use the serverInput field here
     , serverInput : ServerInput.Model
     }
 
@@ -38,6 +39,7 @@ type alias Model =
 initialModel : String -> Model
 initialModel serverInput =
     { state = SignupForm
+    -- Set all the fields to empty values initially
     , email = ""
     , firstName = ""
     , lastName = ""

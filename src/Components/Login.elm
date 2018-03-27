@@ -111,6 +111,9 @@ update msg model globals =
             ( { model | state = LoginForm }, cmd, globalsCmd )
 
 
+-- This function takes a lot of the work from the update function
+-- and manages the rather complex information flow when an
+-- authentication response is received
 handleAuthResponse :
     Globals.Types.Model
     -> (Globals.Types.Authentication -> ( Cmd Msg, Cmd Globals.Types.Msg ))
@@ -120,7 +123,10 @@ handleAuthResponse globals successCmdFn res =
     case authResponseDecode res of
         AuthenticationSuccessResponse authSuccess ->
             case globals.time of
+                -- We need the system time to calculate the remaing time
+                -- for which the token is valid
                 Nothing ->
+                    -- This should not happen
                     ( errorToast "Internal Error" <|
                         "The authentication can't be saved because no TimeTick has been received."
                             ++ "<br />If you see this error in the wild, it means that I probably fucked up real bad."
@@ -135,6 +141,8 @@ handleAuthResponse globals successCmdFn res =
                         ( successCmd, successGlobalsCmd ) =
                             successCmdFn auth
 
+                        -- Navigate back to the URL, we were originally redirected from
+                        -- If it was just an empty URL, go to the dashboard
                         destinationHash =
                             case globals.loginDestLocation.hash of
                                 "" ->
@@ -151,6 +159,7 @@ handleAuthResponse globals successCmdFn res =
                         ]
                     )
 
+        -- Plain old error handling by sending toasts here
         AuthenticationErrorResponse authErr ->
             ( case authErr.error of
                 BadCredentialsError ->
@@ -169,11 +178,9 @@ handleAuthResponse globals successCmdFn res =
             ( errorToast "Communication Error" "An unknown error occured while communicating with the server.", Cmd.none )
 
 
-requiredInput : Input.Option msg
-requiredInput =
-    Input.attrs [ required True ]
 
-
+-- A helper to create the attribute list for inputs
+-- This should improve the readability in the view function
 inputAttrs : Bool -> Bool -> String -> String -> (String -> Msg) -> List (Input.Option Msg)
 inputAttrs enabled requiredVal id val msg =
     [ Input.disabled <| not enabled
@@ -187,6 +194,7 @@ inputAttrs enabled requiredVal id val msg =
 view : Model -> Globals.Types.Model -> Html Msg
 view model globals =
     let
+        -- Disable the login form if a request is in progress
         formEnable =
             case model.state of
                 LoginForm ->
@@ -195,6 +203,7 @@ view model globals =
                 LoginPending ->
                     False
 
+        -- Pre-definied attributes for Inputs and Buttons
         dInput =
             Input.disabled <| not formEnable
 
