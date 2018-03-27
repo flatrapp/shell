@@ -13,6 +13,7 @@ type Msg
     | LocationChange Navigation.Location
     | SaveAuthentication Authentication
     | SaveServerInfo ServerInfo
+    | SaveServerInput String
     | CheckRedirectLogin
     | RequestServerInfo Authentication
     | ServerInfoResponse (Result Http.Error ServerInfoResponse)
@@ -35,13 +36,14 @@ type alias Model =
     , timezoneOffset : Int
     , auth : Maybe Authentication
     , serverInfo : Maybe ServerInfo
+    , serverInput : String
     , lastServerInfoUpdate : Float
     , version : String
     }
 
 
-initialModel : Location -> Int -> Model
-initialModel location timezoneOffset =
+initialModel : Location -> String -> Int -> Model
+initialModel location serverInput timezoneOffset =
     { page = Pages.parseLocation location
     , location = location
     , loginDestLocation = location
@@ -49,6 +51,7 @@ initialModel location timezoneOffset =
     , timezoneOffset = timezoneOffset
     , auth = Nothing
     , serverInfo = Nothing
+    , serverInput = serverInput
     , lastServerInfoUpdate = 0
     , version = "0.0.1"
     }

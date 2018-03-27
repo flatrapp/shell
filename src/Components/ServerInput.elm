@@ -6,6 +6,7 @@ import Exts.Html
 import Globals.Types
 import Helpers.Api.Server exposing (ServerInfoResponse(..), saveServerInput, serverInfoRequest, serverInfoResponseDecode)
 import Helpers.Functions exposing (..)
+import Helpers.Operators exposing (..)
 import Helpers.UrlRegex exposing (checkUrlInput)
 import Html exposing (Html, text)
 import Html.Attributes exposing (for, required, style)
@@ -62,18 +63,18 @@ type ServerState
 type Msg
     = TimeTick Time
     | InputChange String
-    | SaveInput String
+    | SaveInput
     | ConnectResponse Int (Result Http.Error ServerInfoResponse)
 
 
-update : Msg -> Model -> Globals.Types.Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> Globals.Types.Model -> ( Model, Cmd Msg, Cmd Globals.Types.Msg)
 update msg model globals =
     case msg of
         TimeTick time ->
             if model.input /= model.checkVal && time > model.lastChange + serverInputCheckTime then
                 case maybe2 ( model.url, globals.time ) of
                     Nothing ->
-                        model ! []
+                        model !: []
 
                     Just ( url, time ) ->
                         { model
@@ -81,26 +82,26 @@ update msg model globals =
                             , checkCount = model.checkCount + 1
                             , serverState = Pending
                         }
-                            ! [ Http.send (ConnectResponse <| model.checkCount + 1) <|
+                            !: [ Http.send (ConnectResponse <| model.checkCount + 1) <|
                                     serverInfoRequest url time
                               ]
             else
-                model ! []
+                model !: []
 
         ConnectResponse checkCount res ->
             if checkCount >= model.checkCount then
                 case serverInfoResponseDecode res of
                     ServerInfoSuccessResponse info ->
-                        { model | serverState = ConnectOk info.name info.version } ! []
+                        { model | serverState = ConnectOk info.name info.version } !: []
 
                     _ ->
-                        { model | serverState = ConnectErr } ! []
+                        { model | serverState = ConnectErr } !: []
             else
                 -- We've already sent another more recent request, ignore old one
-                model ! []
+                model !: []
 
-        SaveInput input ->
-            { model | prefilledInput = input } ! [ saveServerInput input ]
+        SaveInput ->
+            { model | prefilledInput = model.input } !> ([], [ send <| Globals.Types.SaveServerInput model.input ])
 
         InputChange serverInput ->
             let
@@ -128,7 +129,7 @@ update msg model globals =
                 , serverState = serverState
                 , checkCount = model.checkCount + 1
             }
-                ! []
+                !: []
 
 
 requiredInput : Input.Option msg

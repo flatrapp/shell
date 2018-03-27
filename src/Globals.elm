@@ -5,9 +5,9 @@ import Components.Login as Login
 import Components.Settings as Settings
 import Components.Signup as Signup
 import Globals.Types exposing (Authentication, Model, Msg(..))
+import Helpers.Api.Server exposing (ServerInfoResponse(..), saveServerInput, serverInfoRequest, serverInfoResponseDecode)
 import Helpers.Authentication exposing (getValidAuth, isAuthenticated)
 import Helpers.Operators exposing ((!:), (!>))
-import Helpers.Api.Server exposing (ServerInfoResponse(..), serverInfoRequest, serverInfoResponseDecode)
 import Helpers.Toast exposing (errorToast, simpleToast)
 import Http
 import Msg
@@ -77,6 +77,13 @@ update msg model =
         SaveServerInfo serverInfo ->
             { model | serverInfo = Just serverInfo } !: []
 
+        SaveServerInput serverInput ->
+            let
+                _ =
+                    Debug.log "Saved Server Input:" serverInput
+            in
+            { model | serverInput = serverInput } !: [ saveServerInput serverInput ]
+
         CheckRedirectLogin ->
             checkRedirectLogin model Cmd.none
 
@@ -98,9 +105,11 @@ update msg model =
 
         RequestServerInfo auth ->
             case model.time of
-                Nothing -> model !: []
+                Nothing ->
+                    model !: []
+
                 Just time ->
-                  model !: [ Http.send ServerInfoResponse (serverInfoRequest auth.serverUrl time) ]
+                    model !: [ Http.send ServerInfoResponse (serverInfoRequest auth.serverUrl time) ]
 
         Logout ->
             checkRedirectLogin { model | auth = Nothing } (clearAuthLocalStorage ())
